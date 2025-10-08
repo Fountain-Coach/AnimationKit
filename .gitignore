@@ -1,1 +1,46 @@
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# CocoaPods / Carthage (not expected, but safe)
+Pods/
+Carthage/Build/
+
+# Swift / tooling
+.swiftlint.yml.local
+.swiftformat
+.sourcery.yml
+
+# Editor/IDE
+.idea/
+.vscode/
+.fleet/
+
+# Local references & scratch space
+references/
+scratch/
+
+# Archives / Symbols
+*.dSYM
+*.dSYM.zip
+*.ipa
+*.xcarchive
+
+# Env / secrets (none expected)
+.env
+.env.*
+!.env.example
