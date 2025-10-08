@@ -1,40 +1,44 @@
 import Foundation
 
 /// A basic animation composed of parameter timelines.
+public struct PositionTimeline: Sendable, Equatable, Codable {
+    public var x: Timeline
+    public var y: Timeline
+    public init(x: Timeline, y: Timeline) { self.x = x; self.y = y }
+}
+
+public struct ColorTimeline: Sendable, Equatable, Codable {
+    public var r: Timeline?
+    public var g: Timeline?
+    public var b: Timeline?
+    public var a: Timeline?
+    public init(r: Timeline? = nil, g: Timeline? = nil, b: Timeline? = nil, a: Timeline? = nil) {
+        self.r = r; self.g = g; self.b = b; self.a = a
+    }
+}
+
 public struct Animation: Sendable, Equatable, Codable {
     public var duration: TimeInterval
     public var opacity: Timeline?
-    public var positionX: Timeline?
-    public var positionY: Timeline?
+    public var position: PositionTimeline?
     public var scale: Timeline?
     public var rotation: Timeline?
-    public var colorR: Timeline?
-    public var colorG: Timeline?
-    public var colorB: Timeline?
-    public var colorA: Timeline?
+    public var color: ColorTimeline?
 
     public init(
         duration: TimeInterval,
         opacity: Timeline? = nil,
-        positionX: Timeline? = nil,
-        positionY: Timeline? = nil,
+        position: PositionTimeline? = nil,
         scale: Timeline? = nil,
         rotation: Timeline? = nil,
-        colorR: Timeline? = nil,
-        colorG: Timeline? = nil,
-        colorB: Timeline? = nil,
-        colorA: Timeline? = nil
+        color: ColorTimeline? = nil
     ) {
         self.duration = duration
         self.opacity = opacity
-        self.positionX = positionX
-        self.positionY = positionY
+        self.position = position
         self.scale = scale
         self.rotation = rotation
-        self.colorR = colorR
-        self.colorG = colorG
-        self.colorB = colorB
-        self.colorA = colorA
+        self.color = color
     }
 
     /// Evaluates the animation state at absolute time `t`.
@@ -43,28 +47,19 @@ public struct Animation: Sendable, Equatable, Codable {
         if let opacity {
             state.opacity = opacity.value(at: t)
         }
-        if let positionX {
-            let x = positionX.value(at: t)
-            if let existing = state.position {
-                state.position = (x: x, y: existing.y)
-            } else {
-                state.position = (x: x, y: 0)
-            }
-        }
-        if let positionY {
-            let y = positionY.value(at: t)
-            if let existing = state.position {
-                state.position = (x: existing.x, y: y)
-            } else {
-                state.position = (x: 0, y: y)
-            }
+        if let position {
+            state.position = (x: position.x.value(at: t), y: position.y.value(at: t))
         }
         if let scale { state.scale = scale.value(at: t) }
         if let rotation { state.rotation = rotation.value(at: t) }
-        if let colorR { state.color = (state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)).setting(r: colorR.value(at: t)) }
-        if let colorG { state.color = (state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)).setting(g: colorG.value(at: t)) }
-        if let colorB { state.color = (state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)).setting(b: colorB.value(at: t)) }
-        if let colorA { state.color = (state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)).setting(a: colorA.value(at: t)) }
+        if let color {
+            var base = state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)
+            if let r = color.r { base = base.setting(r: r.value(at: t)) }
+            if let g = color.g { base = base.setting(g: g.value(at: t)) }
+            if let b = color.b { base = base.setting(b: b.value(at: t)) }
+            if let a = color.a { base = base.setting(a: a.value(at: t)) }
+            state.color = base
+        }
         return state
     }
 }

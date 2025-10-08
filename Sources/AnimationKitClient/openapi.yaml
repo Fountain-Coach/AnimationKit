@@ -92,6 +92,24 @@ components:
           items:
             $ref: '#/components/schemas/Keyframe'
       required: [keyframes]
+    Position:
+      type: object
+      properties:
+        x:
+          $ref: '#/components/schemas/Timeline'
+        y:
+          $ref: '#/components/schemas/Timeline'
+    Color:
+      type: object
+      properties:
+        r:
+          $ref: '#/components/schemas/Timeline'
+        g:
+          $ref: '#/components/schemas/Timeline'
+        b:
+          $ref: '#/components/schemas/Timeline'
+        a:
+          $ref: '#/components/schemas/Timeline'
     Animation:
       type: object
       properties:
@@ -99,20 +117,12 @@ components:
           type: number
         opacity:
           $ref: '#/components/schemas/Timeline'
-        positionX:
-          $ref: '#/components/schemas/Timeline'
-        positionY:
-          $ref: '#/components/schemas/Timeline'
+        position:
+          $ref: '#/components/schemas/Position'
         scale:
           $ref: '#/components/schemas/Timeline'
         rotation:
           $ref: '#/components/schemas/Timeline'
-        colorR:
-          $ref: '#/components/schemas/Timeline'
-        colorG:
-          $ref: '#/components/schemas/Timeline'
-        colorB:
-          $ref: '#/components/schemas/Timeline'
-        colorA:
-          $ref: '#/components/schemas/Timeline'
+        color:
+          $ref: '#/components/schemas/Color'
       required: [duration]

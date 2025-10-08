@@ -6,14 +6,10 @@ public enum AnimationSerialization {
         .init(
             duration: animation.duration,
             opacity: animation.opacity?.asGenerated(),
-            positionX: animation.positionX?.asGenerated(),
-            positionY: animation.positionY?.asGenerated(),
+            position: animation.position?.asGenerated(),
             scale: animation.scale?.asGenerated(),
             rotation: animation.rotation?.asGenerated(),
-            colorR: animation.colorR?.asGenerated(),
-            colorG: animation.colorG?.asGenerated(),
-            colorB: animation.colorB?.asGenerated(),
-            colorA: animation.colorA?.asGenerated()
+            color: animation.color?.asGenerated()
         )
     }
 }
@@ -38,5 +34,22 @@ extension AnimationKit.Keyframe {
 extension AnimationKit.Timeline {
     func asGenerated() -> Components.Schemas.Timeline {
         .init(keyframes: keyframes.map { $0.asGenerated() })
+    }
+}
+
+extension AnimationKit.PositionTimeline {
+    func asGenerated() -> Components.Schemas.Position {
+        .init(x: x.asGenerated(), y: y.asGenerated())
+    }
+}
+
+extension AnimationKit.ColorTimeline {
+    func asGenerated() -> Components.Schemas.Color {
+        .init(
+            r: r?.asGenerated(),
+            g: g?.asGenerated(),
+            b: b?.asGenerated(),
+            a: a?.asGenerated()
+        )
     }
 }

@@ -12,14 +12,18 @@ final class SerializationTests: XCTestCase {
             Keyframe(time: 0.0, value: 10.0),
             Keyframe(time: 1.0, value: 20.0)
         ])
+        let posY = Timeline([
+            Keyframe(time: 0.0, value: 0.0),
+            Keyframe(time: 1.0, value: 0.0)
+        ])
         let colorR = Timeline([
             Keyframe(time: 0.0, value: 0.5)
         ])
         let anim = Animation(
             duration: 1.5,
             opacity: opacity,
-            positionX: posX,
-            colorR: colorR
+            position: PositionTimeline(x: posX, y: posY),
+            color: ColorTimeline(r: colorR)
         )
 
         let schema = AnimationSerialization.toSchema(anim)
@@ -35,15 +39,25 @@ final class SerializationTests: XCTestCase {
                     ["time": 1.0, "value": 1.0, "easing": "easeIn"],
                 ]
             ],
-            "positionX": [
-                "keyframes": [
-                    ["time": 0.0, "value": 10.0, "easing": "linear"],
-                    ["time": 1.0, "value": 20.0, "easing": "linear"],
+            "position": [
+                "x": [
+                    "keyframes": [
+                        ["time": 0.0, "value": 10.0, "easing": "linear"],
+                        ["time": 1.0, "value": 20.0, "easing": "linear"],
+                    ]
+                ],
+                "y": [
+                    "keyframes": [
+                        ["time": 0.0, "value": 0.0, "easing": "linear"],
+                        ["time": 1.0, "value": 0.0, "easing": "linear"],
+                    ]
                 ]
             ],
-            "colorR": [
-                "keyframes": [
-                    ["time": 0.0, "value": 0.5, "easing": "linear"],
+            "color": [
+                "r": [
+                    "keyframes": [
+                        ["time": 0.0, "value": 0.5, "easing": "linear"],
+                    ]
                 ]
             ]
         ]
@@ -63,4 +77,3 @@ private extension JSONEncoder {
         return enc
     }
 }
-
