@@ -24,6 +24,10 @@ The following tasks translate the current repository status into an actionable p
   - Add beat-based timeline utilities with conversion to wall time; feature flagged for MIDI2 integration later.
   - Deliverable: Time model APIs, unit tests, and docs describing configuration.
   - Result: `BeatTimeModel`, `BeatTimeline`, and conversion tests were added with an opt-in MIDI 2.0 clock flag documented in STATUS/README files.
+- [x] **Unify OpenAPI specification source**
+  - Remove duplicate OpenAPI documents, wire the generator to the canonical root file, and document the workflow.
+  - Deliverable: Single `openapi.yaml` shared by documentation and code generation, updated AGENTS guidance, and audit notes.
+  - Result: `Package.swift` now references the root spec, the in-target copy remains removed, and the canonical schema captures both historical timeline endpoints and current animation/evaluation routes in generator-friendly 3.0.3 syntax with the audit documenting the workflow.
 
 ## Milestone 2 — Client Reliability & Transport Features
 
@@ -34,7 +38,7 @@ The following tasks translate the current repository status into an actionable p
 - [x] **Enhance OpenAPI schema coverage**
   - Extend `openapi.yaml` with endpoints for animation retrieval/listing, updates, and bulk evaluation.
   - Deliverable: Updated schema, regenerated client outputs (build-only), façade adaptations, and new tests.
-  - Result: `openapi.yaml` now includes list/get/update animation routes and bulk evaluation; façade exposes `listAnimations`, `getAnimation`, `updateAnimation`, and multi-sample evaluate helpers with mock-backed coverage.
+  - Result: The root `openapi.yaml` models animation CRUD, evaluation, and MIDI timeline management in one place; the façade exposes `listAnimations`, `getAnimation`, `updateAnimation`, and bulk evaluation helpers with tests validating serialization changes.
 - [x] **Add serialization bridging for new endpoints**
   - Implement codecs in `Serialization.swift` for newly modeled transport types.
   - Deliverable: Serialization utilities with snapshot or golden tests.

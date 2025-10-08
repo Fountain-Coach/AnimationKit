@@ -202,8 +202,7 @@ extension Components.Schemas.Timeline {
 
 extension Components.Schemas.Keyframe {
     func asKeyframe() -> AnimationKit.Keyframe {
-        let easing = easing?.asEasing() ?? .linear
-        return AnimationKit.Keyframe(time: time, value: value, easing: easing)
+        AnimationKit.Keyframe(time: time, value: value, easing: easing.asEasing())
     }
 }
 
@@ -220,10 +219,7 @@ extension Components.Schemas.Easing {
 
 extension Components.Schemas.Position {
     func asTimeline() throws -> AnimationKit.PositionTimeline {
-        guard let x, let y else {
-            throw AnimationSerializationError.unsupportedComposition
-        }
-        return AnimationKit.PositionTimeline(x: try x.asTimeline(), y: try y.asTimeline())
+        AnimationKit.PositionTimeline(x: try x.asTimeline(), y: try y.asTimeline())
     }
 }
 

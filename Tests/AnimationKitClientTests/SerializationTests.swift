@@ -93,9 +93,9 @@ final class SerializationTests: XCTestCase {
         let updatedAt = Date(timeIntervalSince1970: 120)
         let resource = Components.Schemas.AnimationResource(
             id: "anim-1",
+            animation: animation,
             name: "Example",
             tags: ["demo"],
-            animation: animation,
             createdAt: nil,
             updatedAt: updatedAt
         )

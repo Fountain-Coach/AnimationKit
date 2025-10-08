@@ -18,7 +18,7 @@ This file defines how to work in this repository end to end. Its scope is the en
 - `Sources/` (generated, build-time) — Generated sources emitted by the OpenAPI plugin (not committed)
 - `Tests/AnimationKitTests/` — Unit tests for DSL and core types
 - `Tests/AnimationKitClientTests/` — Client façade tests with mocks
-- `openapi.yaml` — API specification (source of truth)
+- `openapi.yaml` — API specification (source of truth, shared with generator)
 - `docs/` — Developer docs, design notes, examples
 - `references/` — Cloned reference repos (ignored)
 - `examples/` — Minimal usage samples
@@ -43,6 +43,11 @@ Steps:
    - `.plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")`
 3) Ensure the plugin points to `openapi.yaml` (either default discovery or config file as Engraver does).
 4) Build to generate sources into `.build/` and import them from the handwritten façade in `Sources/AnimationKitClient/`.
+
+**OpenAPI Source of Truth**
+- The only OpenAPI document in the repo is `openapi.yaml` at the repository root. The client target copies this file via `Package.swift`; do not add secondary `openapi.*` documents elsewhere.
+- When updating the schema, edit the root file and run `swift build` to regenerate plugin outputs. Commit the handwritten façade changes only.
+- Keep documentation, release plans, and tooling aligned with this single specification.
 
 Do not check in generated sources unless explicitly required; prefer reproducible builds that generate at compile time.
 

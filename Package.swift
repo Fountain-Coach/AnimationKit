@@ -31,7 +31,7 @@ let package = Package(
             ],
             path: "Sources/AnimationKitClient",
             resources: [
-                .copy("openapi.yaml")
+                .copy("../../openapi.yaml")
             ],
             plugins: [
                 .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")

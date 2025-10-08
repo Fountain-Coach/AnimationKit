@@ -1,3 +1,4 @@
+# Canonical spec lives at repo root (openapi.yaml); this config is shared by the generator plugin.
 accessModifier: public
 generate:
   - types
