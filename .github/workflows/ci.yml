@@ -11,46 +11,46 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    name: Build and Test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-14, ubuntu-22.04]
-        include:
-          - os: macos-14
-            xcode: "16.2"
-          - os: ubuntu-22.04
-            swift: "6.0"
+  macos:
+    name: Build and Test (macOS)
+    runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Select Xcode ${{ matrix.xcode }}
-        if: matrix.os == 'macos-14'
+      - name: Select Xcode 16.2
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: ${{ matrix.xcode }}
-
-      - name: Setup Swift ${{ matrix.swift }}
-        if: matrix.os == 'ubuntu-22.04'
-        uses: swift-actions/setup-swift@v1
-        with:
-          swift-version: ${{ matrix.swift }}
-
+          xcode-version: '16.2'
       - name: Show toolchain
         run: swift --version
-
       - name: Cache SwiftPM
         uses: actions/cache@v4
         with:
           path: |
             ~/.swiftpm
-          key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
-
+          key: macos-spm-${{ hashFiles('**/Package.resolved') }}
       - name: Build
         run: swift build --disable-sandbox
+      - name: Test
+        run: swift test --disable-sandbox
 
+  linux:
+    name: Build and Test (Linux)
+    runs-on: ubuntu-22.04
+    container:
+      image: swift:6.0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Show toolchain
+        run: swift --version
+      - name: Cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            /github/home/.swiftpm
+          key: linux-spm-${{ hashFiles('**/Package.resolved') }}
+      - name: Build
+        run: swift build --disable-sandbox
       - name: Test
         run: swift test --disable-sandbox
