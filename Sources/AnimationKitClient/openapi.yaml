@@ -20,4 +20,54 @@ paths:
                   status:
                     type: string
                 required: [status]
+  /evaluate:
+    post:
+      operationId: evaluateTimeline
+      summary: Evaluate a timeline at time
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                timeline:
+                  $ref: '#/components/schemas/Timeline'
+                t:
+                  type: number
+              required: [timeline, t]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: number
+                required: [value]
 
+components:
+  schemas:
+    Easing:
+      type: string
+      enum: [linear, easeIn, easeOut, easeInOut]
+    Keyframe:
+      type: object
+      properties:
+        time:
+          type: number
+        value:
+          type: number
+        easing:
+          $ref: '#/components/schemas/Easing'
+      required: [time, value]
+    Timeline:
+      type: object
+      properties:
+        keyframes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Keyframe'
+      required: [keyframes]

@@ -1,12 +1,9 @@
 import Foundation
 import OpenAPIURLSession
 import OpenAPIRuntime
+import AnimationKit
 
 /// Thin façade for the generated OpenAPI client.
-///
-/// Note: At this stage, the façade does not directly reference
-/// generated entrypoints to keep compilation independent of specific
-/// symbol names. It provides a basic health endpoint using raw HTTP.
 public struct AnimationServiceClient: Sendable {
     public struct Configuration: Sendable {
         public var baseURL: URL
@@ -17,24 +14,49 @@ public struct AnimationServiceClient: Sendable {
         }
     }
 
-    private let config: Configuration
+    private let client: Client
 
     public init(_ config: Configuration) {
-        self.config = config
+        let transport = URLSessionTransport(configuration: .init(session: config.session))
+        self.client = Client(serverURL: config.baseURL, transport: transport)
     }
 
-    /// Simple health call until typed client wiring is added.
+    /// GET /health via generated client.
     public func health() async throws -> String {
-        var request = URLRequest(url: config.baseURL.appendingPathComponent("/health"))
-        request.httpMethod = "GET"
-        let (data, response) = try await config.session.data(for: request)
-        guard let http = response as? HTTPURLResponse, http.statusCode == 200 else {
-            throw URLError(.badServerResponse)
+        let output = try await client.getHealth(headers: .init())
+        return try output.ok.body.json.status
+    }
+
+    /// POST /evaluate with DSL-to-transport bridging.
+    public func evaluate(timeline: AnimationKit.Timeline, at t: TimeInterval) async throws -> Double {
+        let payload = Operations.evaluateTimeline.Input.Body.json(.init(
+            timeline: timeline.asGenerated(),
+            t: t
+        ))
+        let output = try await client.evaluateTimeline(body: payload)
+        return try output.ok.body.json.value
+    }
+}
+
+private extension AnimationKit.Easing {
+    func asGenerated() -> Components.Schemas.Easing {
+        switch self {
+        case .linear: return .linear
+        case .easeIn: return .easeIn
+        case .easeOut: return .easeOut
+        case .easeInOut: return .easeInOut
         }
-        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let status = json["status"] as? String {
-            return status
-        }
-        return "ok"
+    }
+}
+
+private extension AnimationKit.Keyframe {
+    func asGenerated() -> Components.Schemas.Keyframe {
+        .init(time: time, value: value, easing: easing.asGenerated())
+    }
+}
+
+private extension AnimationKit.Timeline {
+    func asGenerated() -> Components.Schemas.Timeline {
+        .init(keyframes: keyframes.map { $0.asGenerated() })
     }
 }

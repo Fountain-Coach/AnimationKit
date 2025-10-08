@@ -25,6 +25,7 @@ let package = Package(
         .target(
             name: "AnimationKitClient",
             dependencies: [
+                "AnimationKit",
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession")
             ],
@@ -43,7 +44,7 @@ let package = Package(
         ),
         .testTarget(
             name: "AnimationKitClientTests",
-            dependencies: ["AnimationKitClient"],
+            dependencies: ["AnimationKitClient", "AnimationKit"],
             path: "Tests/AnimationKitClientTests"
         )
     ]
