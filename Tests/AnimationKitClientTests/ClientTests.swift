@@ -2,6 +2,8 @@ import XCTest
 @testable import AnimationKitClient
 import AnimationKit
 
+#if canImport(Darwin)
+
 final class ClientTests: XCTestCase {
     @MainActor
     func testInitAndHealthMock() async throws {
@@ -74,3 +76,5 @@ final class MockHealthURLProtocol: URLProtocol {
         // no-op
     }
 }
+
+#endif
