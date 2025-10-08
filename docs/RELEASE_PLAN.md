@@ -1,98 +1,52 @@
-# AnimationKit — Stable v1.0 Task Plan
+# AnimationKit — v1.0 Release Plan
 
-The following tasks translate the current repository status into an actionable plan for delivering the first stable release of AnimationKit. Tasks are grouped by milestone and written to be executable: each item has a clear deliverable, success criteria, and dependencies where relevant.
+This plan captures the remaining work required to ship AnimationKit 1.0. It reflects the current repository state after the MIDI-aware timing refactor and client transport expansion, and it focuses on making the existing functionality shippable.
 
-## Milestone 1 — Core Platform Hardening
+## Current Snapshot (2025-10-08)
+- DSL supports clips, groups, and sequences with deterministic evaluation and builder conveniences.
+- Beat-based timing flows from the DSL through MIDI automation timelines and into the client transport.
+- The OpenAPI-backed client façade surfaces health, evaluation, submission, listing, retrieval, and update endpoints with typed errors, retries, and monitoring hooks.
+- Cross-platform CI (macOS 14 + Linux/Swift 6) runs build and test jobs on every push and pull request.
 
-- [x] **Audit SwiftPM scaffold against Engraver reference**
-  - Confirm `Package.swift` includes the latest compatible `swift-openapi-generator` plugin version and aligned build settings.
-  - Deliverable: Updated manifest if deltas exist; documented confirmation otherwise.
-  - Result: Manifest now references `swift-openapi-generator` 1.10.3, `swift-openapi-runtime` 1.8.3, and `swift-openapi-urlsession` 1.2.0.
-- [x] **Pin Swift toolchain and deployment targets**
-  - Document supported Swift version (5.9+/Swift 6 readiness) and minimum platform versions in `README.md` and manifest.
-  - Deliverable: Manifest deployment targets set; docs updated.
-  - Result: README documents Swift 6 toolchain support alongside macOS 13+/iOS 16+ requirements.
-- [x] **Stabilize DSL public API surface**
-  - Review `Sources/AnimationKit` for naming consistency, doc comments, and access control.
-  - Deliverable: Annotated public API documentation (`///`), breaking change log entry, and unit tests proving determinism.
-  - Result: Public DSL types now carry doc comments, deterministic evaluation tests were added, and docs/CHANGELOG.md records the breaking change.
-- [x] **Expand DSL coverage to groups and sequences**
-  - Implement grouping and sequencing constructs per design notes, including evaluation tests for nested compositions.
-  - Deliverable: New DSL types/functions with tests in `Tests/AnimationKitTests`.
-  - Result: `Animation.clip/group/sequence`, `AnimationGroup`, and `AnimationSequence` power nested compositions with new unit coverage.
-- [x] **Introduce beats-based time model**
-  - Add beat-based timeline utilities with conversion to wall time; feature flagged for MIDI2 integration later.
-  - Deliverable: Time model APIs, unit tests, and docs describing configuration.
-  - Result: `BeatTimeModel`, `BeatTimeline`, and conversion tests were added with an opt-in MIDI 2.0 clock flag documented in STATUS/README files.
-- [x] **Unify OpenAPI specification source**
-  - Remove duplicate OpenAPI documents, wire the generator to the canonical root file, and document the workflow.
-  - Deliverable: Single `openapi.yaml` shared by documentation and code generation, updated AGENTS guidance, and audit notes.
-  - Result: `Package.swift` now references the root spec, the in-target copy remains removed, and the canonical schema captures both historical timeline endpoints and current animation/evaluation routes in generator-friendly 3.0.3 syntax with the audit documenting the workflow.
+## Completed Milestones
+- [x] **Foundation scaffold** — SwiftPM manifest, Apple Swift OpenAPI generator plugin integration, and deterministic DSL primitives.
+- [x] **Transport + MIDI integration** — Unified `openapi.yaml`, façade serialization layer, MIDI automation timelines, and coverage tests for request/response bridging.
+- [x] **Baseline CI** — macOS and Linux workflows that build and test the package using Swift 6 toolchains.
 
-## Milestone 2 — Client Reliability & Transport Features
+## Milestone 3 — Quality Gates & Tooling *(In Progress)*
+- [ ] **Broaden test coverage and reporting**
+  - Deliverable: Code coverage reports for DSL compositions and client serialization (including MIDI timelines and retry paths) with thresholds enforced in CI.
+  - Success criteria: CI fails when coverage drops below agreed limits; documentation describes how to run coverage locally.
+- [ ] **Introduce lint/format and static analysis checks**
+  - Deliverable: `swiftformat`/`swiftlint` (or equivalent) configuration committed with CI enforcement and contributor instructions.
+  - Success criteria: CI blocks non-conforming code; contributing docs updated with tooling usage.
+- [ ] **Automate doc health**
+  - Deliverable: DocC (or swift-docc-plugin) build step validating public API docs, plus a checklist for adding new API documentation.
+  - Success criteria: CI job produces doc build artifacts or fails when documentation is incomplete.
 
-- [x] **Define typed client errors and retry policy**
-  - Create error enums and configurable retry/backoff strategy inside `AnimationKitClient` façade.
-  - Deliverable: Error types, retry logic, configuration documentation, and client tests using mocks.
-  - Result: `AnimationServiceError` categorises HTTP, transport, decoding, and retry exhaustion failures with configurable `RetryConfiguration`; tests cover retries and exhaustion handling.
-- [x] **Enhance OpenAPI schema coverage**
-  - Extend `openapi.yaml` with endpoints for animation retrieval/listing, updates, and bulk evaluation.
-  - Deliverable: Updated schema, regenerated client outputs (build-only), façade adaptations, and new tests.
-  - Result: The root `openapi.yaml` models animation CRUD, evaluation, and MIDI timeline management in one place; the façade exposes `listAnimations`, `getAnimation`, `updateAnimation`, and bulk evaluation helpers with tests validating serialization changes.
-- [x] **Add serialization bridging for new endpoints**
-  - Implement codecs in `Serialization.swift` for newly modeled transport types.
-  - Deliverable: Serialization utilities with snapshot or golden tests.
-  - Result: New `AnimationDraft`, `RemoteAnimation`, and `AnimationPage` bridging plus reverse timeline codecs with deterministic tests.
-- [x] **Implement health monitoring hooks**
-  - Provide lightweight observability (metrics hooks or delegate callbacks) around client calls.
-  - Deliverable: Protocols/types exposed publicly and exercised via unit tests.
-  - Result: `AnimationServiceClientMonitor` surfaces request/response metrics; recording monitor test validates call counts and durations.
+## Milestone 4 — Developer Experience & Documentation
+- [ ] **Publish runnable examples**
+  - Deliverable: Populated `examples/` directory with at least two scenarios (timeline evaluation and client submission) accompanied by README walkthroughs.
+  - Success criteria: Examples compile and run with documented commands from a clean checkout.
+- [ ] **Refresh quick-start and onboarding docs**
+  - Deliverable: Updated root and docs READMEs covering toolchains, generation workflow, and integration guidance.
+  - Success criteria: Instructions verified in a clean environment; STATUS report references the new onboarding flow.
+- [ ] **Author migration and troubleshooting guides**
+  - Deliverable: `docs/MIGRATION_GUIDE.md` for pre-1.0 adopters and a troubleshooting appendix for common generator/runtime issues.
+  - Success criteria: Guides referenced from README and release notes; internal reviewers sign off.
 
-## Milestone 3 — Quality Gates & Tooling
+## Milestone 5 — Release Candidate & Publication
+- [ ] **Create release checklist and dry run**
+  - Deliverable: `docs/RELEASE_CHECKLIST.md` capturing clean-build validation, generator output audit, and artifact packaging steps.
+  - Success criteria: Checklist executed once on a clean machine with outcomes recorded.
+- [ ] **Finalize semantic versioning and branching strategy**
+  - Deliverable: Documented release process (tagging, branching, changelog updates) including automation scripts if any.
+  - Success criteria: Approved by maintainers; aligns with CI and repository protections.
+- [ ] **Cut v1.0.0 release**
+  - Deliverable: Annotated Git tag, release notes summarizing milestones, and publication to intended distribution channels.
+  - Success criteria: Release artifacts verified; documentation and changelog updated with final version details.
 
-- [ ] **Strengthen unit and snapshot coverage**
-  - Achieve targeted coverage for DSL evaluation and client serialization; add snapshot fixtures for complex animations.
-  - Deliverable: Coverage report and CI step enforcing thresholds.
-- [ ] **Set up linting and formatting**
-  - Introduce `swiftformat`/`swiftlint` configurations, integrate into CI, and update contributing docs.
-  - Deliverable: Config files, tooling scripts, CI job, and documentation.
-- [ ] **Expand CI matrix**
-  - Add Linux job (if platform support desired) and ensure macOS job pins Xcode 16.x.
-  - Deliverable: Updated workflow under `.github/workflows/ci.yml` with green runs.
-- [ ] **Automate documentation verification**
-  - Add doc coverage check (DocC or swift-docc-plugin) ensuring public API is documented.
-  - Deliverable: Doc build command in CI and pass criteria recorded in docs.
-
-## Milestone 4 — Developer Experience & Examples
-
-- [ ] **Publish comprehensive usage examples**
-  - Build scenarios under `examples/` showing animation composition, evaluation, and client submission.
-  - Deliverable: Example projects/scripts with README walkthroughs.
-- [ ] **Create quick-start documentation**
-  - Update `docs/README.md` with quick-start steps, including plugin usage and generation workflow.
-  - Deliverable: Doc updates validated by a clean environment run-through.
-- [ ] **Author migration guide for v1.0**
-  - Document breaking changes, feature highlights, and upgrade steps from pre-release builds.
-  - Deliverable: `docs/MIGRATION_GUIDE.md` covering DSL and client updates.
-
-## Milestone 5 — Release Readiness
-
-- [ ] **Finalize semantic versioning strategy**
-  - Decide on tagging scheme, branching model, and release automation (GitHub Releases).
-  - Deliverable: Documented release process in `docs/`.
-- [ ] **Conduct release candidate hardening pass**
-  - Run full build/test matrix, verify plugin generation from a clean checkout, and ensure no generated files leak into git.
-  - Deliverable: Signed-off checklist stored in `docs/RELEASE_CHECKLIST.md`.
-- [ ] **Tag and publish v1.0.0**
-  - Create annotated tag, draft release notes summarizing milestones, and publish package metadata if required.
-  - Deliverable: Git tag, release notes, and confirmation of distribution channels.
-
-## Ongoing Governance
-
-- [ ] **Maintain STATUS.md updates**
-  - After each milestone, update `docs/STATUS.md` with latest accomplishments and open items.
-  - Deliverable: Current status log aligned with repository state.
-- [ ] **Track follow-up features (MIDI2 integration, etc.)**
-  - Capture future work in backlog issues while keeping v1.0 scope focused.
-  - Deliverable: Issue tracker entries referencing design notes.
-
+## Post-1.0 Backlog
+- [ ] MIDI 2.0 clock synchronization beyond feature flag defaults (e.g., external clock sources, latency compensation).
+- [ ] Transport support for grouped/sequenced animations or wall-time-only clips.
+- [ ] Additional integrations (e.g., real-time streaming endpoints, editor plugins) as dictated by product roadmap.
