@@ -21,6 +21,27 @@ paths:
                     type: string
                 required: [status]
   /animations:
+    get:
+      operationId: listAnimations
+      summary: List animations
+      parameters:
+        - in: query
+          name: pageToken
+          schema:
+            type: string
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimationListResponse'
     post:
       operationId: submitAnimation
       summary: Submit an animation
@@ -41,6 +62,53 @@ paths:
                   id:
                     type: string
                 required: [id]
+        '400':
+          description: Invalid payload
+  /animations/{id}:
+    get:
+      operationId: getAnimation
+      summary: Fetch an animation by identifier
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimationResource'
+        '404':
+          description: Not Found
+    put:
+      operationId: updateAnimation
+      summary: Update an animation resource
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAnimationRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimationResource'
+        '400':
+          description: Invalid payload
+        '404':
+          description: Not Found
   /evaluate:
     post:
       operationId: evaluateTimeline
@@ -68,6 +136,23 @@ paths:
                   value:
                     type: number
                 required: [value]
+  /evaluate/bulk:
+    post:
+      operationId: evaluateTimelineBulk
+      summary: Evaluate a timeline across multiple samples
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkEvaluationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkEvaluationResponse'
 
 components:
   schemas:
@@ -126,3 +211,84 @@ components:
         color:
           $ref: '#/components/schemas/Color'
       required: [duration]
+    AnimationSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        duration:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, duration]
+    AnimationResource:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        animation:
+          $ref: '#/components/schemas/Animation'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, animation]
+    AnimationListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnimationSummary'
+        nextPageToken:
+          type: string
+      required: [items]
+    UpdateAnimationRequest:
+      type: object
+      properties:
+        animation:
+          $ref: '#/components/schemas/Animation'
+        name:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required: [animation]
+    BulkEvaluationRequest:
+      type: object
+      properties:
+        timeline:
+          $ref: '#/components/schemas/Timeline'
+        samples:
+          type: array
+          items:
+            type: number
+      required: [timeline, samples]
+    EvaluationSample:
+      type: object
+      properties:
+        t:
+          type: number
+        value:
+          type: number
+      required: [t, value]
+    BulkEvaluationResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EvaluationSample'
+      required: [results]

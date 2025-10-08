@@ -1,21 +1,21 @@
 # AnimationKit — Status Report
 
-- Timestamp (UTC): 2025-10-08T15:37:19Z
+- Timestamp (UTC): 2025-10-08T16:04:06Z
 - Branch: main
 - HEAD: <pending>
 
 ## Summary
 - SwiftPM manifest updated to the latest Apple Swift OpenAPI packages (`swift-openapi-generator` 1.10.3, runtime 1.8.3, URLSession 1.2.0).
-- Core DSL exposes documented public API covering keyframes, timelines, clips, groups, and sequences.
-- Animation composition supports concurrent groups and sequential playback with deterministic evaluation.
+- Core DSL exposes documented public API covering keyframes, timelines, clips, groups, and sequences with deterministic evaluation.
 - Beat-based time model (`BeatTimeModel`, `BeatTimeline`) converts between beats and wall-clock seconds with an opt-in MIDI 2.0 clock flag.
-- Tests cover timeline interpolation, composition determinism, beat conversion, and client serialization fallbacks.
+- Client façade now provides typed errors, retry/backoff controls, monitoring hooks, and new endpoints for listing, fetching, updating, and bulk-evaluating animations.
+- Serialization utilities bridge between transport schemas and DSL types (drafts, resources, bulk evaluation samples) with golden tests.
 
 ## Structure
 - Manifest: Package.swift
 - Core DSL: Sources/AnimationKit (Animation.swift, Timeline.swift, Keyframe.swift, Parameters.swift, BeatTime.swift)
-- Client façade: Sources/AnimationKitClient/ServiceClient.swift
-- Serialization: Sources/AnimationKitClient/Serialization.swift
+- Client façade: Sources/AnimationKitClient/ServiceClient.swift (typed errors, retry policy, monitoring hooks)
+- Serialization: Sources/AnimationKitClient/Serialization.swift (bidirectional codecs, transport models)
 - Tests:
   - Tests/AnimationKitTests/TimelineTests.swift
   - Tests/AnimationKitTests/AnimationCompositionTests.swift
@@ -30,10 +30,9 @@
 - Represent beat-driven timing with explicit models to enable future MIDI 2.0 clock integration without runtime globals.
 
 ## Open Items / Next Steps
-- Extend client façade with typed errors and retry policies (Milestone 2).
-- Expand OpenAPI schema and serialization coverage for additional endpoints.
 - Add examples and documentation walkthroughs once DSL stabilizes further.
 - Wire CI, linting, and doc coverage tooling (Milestone 3).
+- Increase test coverage for complex client serialization and DSL evaluation (Milestone 3).
 
 ## Housekeeping
 - `references/` remains ignored for external repositories.

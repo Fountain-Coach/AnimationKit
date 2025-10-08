@@ -80,6 +80,68 @@ final class SerializationTests: XCTestCase {
             }
         }
     }
+
+    func testAnimationResourceDecoding() throws {
+        let timeline = Components.Schemas.Timeline(keyframes: [
+            .init(time: 0.0, value: 0.0, easing: .linear),
+            .init(time: 1.0, value: 1.0, easing: .easeIn)
+        ])
+        let animation = Components.Schemas.Animation(
+            duration: 1.0,
+            opacity: timeline
+        )
+        let updatedAt = Date(timeIntervalSince1970: 120)
+        let resource = Components.Schemas.AnimationResource(
+            id: "anim-1",
+            name: "Example",
+            tags: ["demo"],
+            animation: animation,
+            createdAt: nil,
+            updatedAt: updatedAt
+        )
+        let decoded = try AnimationSerialization.fromSchema(resource)
+        XCTAssertEqual(decoded.id, "anim-1")
+        XCTAssertEqual(decoded.name, "Example")
+        XCTAssertEqual(decoded.tags, ["demo"])
+        XCTAssertEqual(decoded.animation.duration, 1.0)
+        XCTAssertEqual(decoded.animation.clip?.opacity?.keyframes.count, 2)
+        let updatedTime = try XCTUnwrap(decoded.updatedAt?.timeIntervalSince1970)
+        XCTAssertEqual(updatedTime, 120, accuracy: 0.5)
+    }
+
+    func testAnimationSummaryDecoding() throws {
+        let summary = Components.Schemas.AnimationSummary(
+            id: "anim-2",
+            name: "Another",
+            duration: 2.0,
+            updatedAt: Date(timeIntervalSince1970: 50)
+        )
+        let converted = try AnimationSerialization.fromSchema(summary)
+        XCTAssertEqual(converted.id, "anim-2")
+        XCTAssertEqual(converted.name, "Another")
+        XCTAssertEqual(converted.duration, 2.0)
+        let summaryTime = try XCTUnwrap(converted.updatedAt?.timeIntervalSince1970)
+        XCTAssertEqual(summaryTime, 50, accuracy: 0.5)
+    }
+
+    func testDraftToUpdateRequest() throws {
+        let anim = Animation(duration: 2.0)
+        let draft = AnimationDraft(animation: anim, name: "Updated", tags: ["tag"])
+        let request = try AnimationSerialization.toSchema(draft)
+        XCTAssertEqual(request.name, "Updated")
+        XCTAssertEqual(request.tags, ["tag"])
+        XCTAssertEqual(request.animation.duration, 2.0)
+    }
+
+    func testBulkEvaluationRequestFactory() {
+        let timeline = Timeline([
+            Keyframe(time: 0.0, value: 0.0),
+            Keyframe(time: 1.0, value: 1.0)
+        ])
+        let request = AnimationSerialization.makeBulkRequest(timeline: timeline, samples: [0.0, 0.5, 1.0])
+        XCTAssertEqual(request.samples, [0.0, 0.5, 1.0])
+        XCTAssertEqual(request.timeline.keyframes.count, 2)
+    }
 }
 
 private extension JSONEncoder {
