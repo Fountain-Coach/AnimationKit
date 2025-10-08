@@ -18,3 +18,5 @@ scratch/
 
 # Logs
 *.log
+# Ignore local reference PDFs
+/*.pdf
