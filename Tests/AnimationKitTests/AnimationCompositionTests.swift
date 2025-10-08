@@ -3,21 +3,60 @@ import XCTest
 
 final class AnimationCompositionTests: XCTestCase {
     func testGroupMergesParameterStates() throws {
-        let fadeIn = Animation(duration: 1.0, opacity: Timeline([
-            Keyframe(time: 0.0, value: 0.0),
-            Keyframe(time: 1.0, value: 1.0)
-        ]))
-
-        let move = Animation(duration: 1.0, position: PositionTimeline(
-            x: Timeline([
+        let fadeInMidi = Midi2Timeline(
+            timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+            tracks: [
+                Midi2AutomationTrack(
+                    target: .opacity,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 0.0),
+                        BeatKeyframe(beat: 1.0, value: 1.0)
+                    ]
+                )
+            ]
+        )
+        let fadeIn = Animation(
+            duration: 1.0,
+            midiTimeline: fadeInMidi,
+            opacity: Timeline([
                 Keyframe(time: 0.0, value: 0.0),
-                Keyframe(time: 1.0, value: 10.0)
-            ]),
-            y: Timeline([
-                Keyframe(time: 0.0, value: 0.0),
-                Keyframe(time: 1.0, value: 5.0)
+                Keyframe(time: 1.0, value: 1.0)
             ])
-        ))
+        )
+
+        let moveMidi = Midi2Timeline(
+            timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+            tracks: [
+                Midi2AutomationTrack(
+                    target: .positionX,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 0.0),
+                        BeatKeyframe(beat: 1.0, value: 10.0)
+                    ]
+                ),
+                Midi2AutomationTrack(
+                    target: .positionY,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 0.0),
+                        BeatKeyframe(beat: 1.0, value: 5.0)
+                    ]
+                )
+            ]
+        )
+        let move = Animation(
+            duration: 1.0,
+            midiTimeline: moveMidi,
+            position: PositionTimeline(
+                x: Timeline([
+                    Keyframe(time: 0.0, value: 0.0),
+                    Keyframe(time: 1.0, value: 10.0)
+                ]),
+                y: Timeline([
+                    Keyframe(time: 0.0, value: 0.0),
+                    Keyframe(time: 1.0, value: 5.0)
+                ])
+            )
+        )
 
         let group = Animation.group {
             fadeIn
@@ -33,15 +72,47 @@ final class AnimationCompositionTests: XCTestCase {
     }
 
     func testSequenceEvaluatesWithOffsets() throws {
-        let fadeOut = Animation(duration: 1.0, opacity: Timeline([
-            Keyframe(time: 0.0, value: 1.0),
-            Keyframe(time: 1.0, value: 0.0)
-        ]))
+        let fadeOutMidi = Midi2Timeline(
+            timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+            tracks: [
+                Midi2AutomationTrack(
+                    target: .opacity,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 1.0),
+                        BeatKeyframe(beat: 1.0, value: 0.0)
+                    ]
+                )
+            ]
+        )
+        let fadeOut = Animation(
+            duration: 1.0,
+            midiTimeline: fadeOutMidi,
+            opacity: Timeline([
+                Keyframe(time: 0.0, value: 1.0),
+                Keyframe(time: 1.0, value: 0.0)
+            ])
+        )
 
-        let scaleUp = Animation(duration: 0.5, scale: Timeline([
-            Keyframe(time: 0.0, value: 1.0),
-            Keyframe(time: 0.5, value: 2.0)
-        ]))
+        let scaleMidi = Midi2Timeline(
+            timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+            tracks: [
+                Midi2AutomationTrack(
+                    target: .scale,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 1.0),
+                        BeatKeyframe(beat: 0.5, value: 2.0)
+                    ]
+                )
+            ]
+        )
+        let scaleUp = Animation(
+            duration: 0.5,
+            midiTimeline: scaleMidi,
+            scale: Timeline([
+                Keyframe(time: 0.0, value: 1.0),
+                Keyframe(time: 0.5, value: 2.0)
+            ])
+        )
 
         let sequence = Animation.sequence {
             fadeOut
@@ -64,6 +135,18 @@ final class AnimationCompositionTests: XCTestCase {
     func testNestedCompositionsRemainDeterministic() {
         let clip = AnimationClip(
             duration: 1.0,
+            midiTimeline: Midi2Timeline(
+                timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+                tracks: [
+                    Midi2AutomationTrack(
+                        target: .opacity,
+                        events: [
+                            BeatKeyframe(beat: 0.0, value: 0.0),
+                            BeatKeyframe(beat: 1.0, value: 1.0)
+                        ]
+                    )
+                ]
+            ),
             opacity: Timeline([
                 Keyframe(time: 0.0, value: 0.0),
                 Keyframe(time: 1.0, value: 1.0)
@@ -75,10 +158,25 @@ final class AnimationCompositionTests: XCTestCase {
                 Animation.clip(clip)
             }
             Animation.group {
-                Animation(duration: 0.5, rotation: Timeline([
-                    Keyframe(time: 0.0, value: 0.0),
-                    Keyframe(time: 0.5, value: Double.pi)
-                ]))
+                Animation(
+                    duration: 0.5,
+                    midiTimeline: Midi2Timeline(
+                        timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+                        tracks: [
+                            Midi2AutomationTrack(
+                                target: .rotation,
+                                events: [
+                                    BeatKeyframe(beat: 0.0, value: 0.0),
+                                    BeatKeyframe(beat: 0.5, value: Double.pi)
+                                ]
+                            )
+                        ]
+                    ),
+                    rotation: Timeline([
+                        Keyframe(time: 0.0, value: 0.0),
+                        Keyframe(time: 0.5, value: Double.pi)
+                    ])
+                )
             }
         }
 

@@ -6,12 +6,16 @@ public enum AnimationSerialization {
         guard let clip = animation.clip else {
             throw AnimationSerializationError.unsupportedComposition
         }
-        return toSchema(clip)
+        return try toSchema(clip)
     }
 
-    public static func toSchema(_ clip: AnimationKit.AnimationClip) -> Components.Schemas.Animation {
-        .init(
+    public static func toSchema(_ clip: AnimationKit.AnimationClip) throws -> Components.Schemas.Animation {
+        guard let midiTimeline = clip.midiTimeline else {
+            throw AnimationSerializationError.missingMidiTimeline
+        }
+        return .init(
             duration: clip.duration,
+            midiTimeline: midiTimeline.asGenerated(),
             opacity: clip.opacity?.asGenerated(),
             position: clip.position?.asGenerated(),
             scale: clip.scale?.asGenerated(),
@@ -31,6 +35,7 @@ public enum AnimationSerialization {
     public static func fromSchema(_ animation: Components.Schemas.Animation) throws -> AnimationKit.Animation {
         let clip = AnimationKit.AnimationClip(
             duration: animation.duration,
+            midiTimeline: animation.midiTimeline.asMidiTimeline(),
             opacity: try animation.opacity?.asTimeline(),
             position: try animation.position?.asTimeline(),
             scale: try animation.scale?.asTimeline(),
@@ -80,6 +85,7 @@ public enum AnimationSerialization {
 
 public enum AnimationSerializationError: Error, Sendable {
     case unsupportedComposition
+    case missingMidiTimeline
 }
 
 public struct AnimationDraft: Sendable, Equatable {
@@ -197,6 +203,139 @@ extension Components.Schemas.Timeline {
     func asTimeline() throws -> AnimationKit.Timeline {
         let frames = keyframes.map { $0.asKeyframe() }
         return AnimationKit.Timeline(frames)
+    }
+}
+
+extension AnimationKit.BeatKeyframe {
+    func asGenerated() -> Components.Schemas.BeatKeyframe {
+        .init(beat: beat, value: value, easing: easing.asGenerated())
+    }
+}
+
+extension Components.Schemas.BeatKeyframe {
+    func asBeatKeyframe() -> AnimationKit.BeatKeyframe {
+        AnimationKit.BeatKeyframe(beat: beat, value: value, easing: easing.asEasing())
+    }
+}
+
+extension AnimationKit.BeatTimeline {
+    func asGenerated() -> Components.Schemas.BeatTimeline {
+        .init(keyframes: keyframes.map { $0.asGenerated() })
+    }
+}
+
+extension Components.Schemas.BeatTimeline {
+    func asBeatTimeline() -> AnimationKit.BeatTimeline {
+        AnimationKit.BeatTimeline(keyframes.map { $0.asBeatKeyframe() })
+    }
+}
+
+extension AnimationKit.Tempo {
+    func asGenerated() -> Components.Schemas.Tempo {
+        .init(beatsPerMinute: beatsPerMinute)
+    }
+}
+
+extension Components.Schemas.Tempo {
+    func asTempo() -> AnimationKit.Tempo {
+        AnimationKit.Tempo(beatsPerMinute: beatsPerMinute)
+    }
+}
+
+extension AnimationKit.BeatTimeModel {
+    func asGenerated() -> Components.Schemas.BeatTimeModel {
+        .init(
+            tempo: tempo.asGenerated(),
+            beatOffset: beatOffset,
+            wallTimeOffset: wallTimeOffset,
+            enableMIDI2Clock: enableMIDI2Clock
+        )
+    }
+}
+
+extension Components.Schemas.BeatTimeModel {
+    func asBeatTimeModel() -> AnimationKit.BeatTimeModel {
+        AnimationKit.BeatTimeModel(
+            tempo: tempo.asTempo(),
+            beatOffset: beatOffset ?? 0,
+            wallTimeOffset: wallTimeOffset ?? 0,
+            enableMIDI2Clock: enableMIDI2Clock ?? false
+        )
+    }
+}
+
+extension AnimationKit.Midi2ControlTarget {
+    func asGenerated() -> Components.Schemas.Midi2ControlTarget {
+        switch self {
+        case .opacity: return .opacity
+        case .positionX: return .positionX
+        case .positionY: return .positionY
+        case .scale: return .scale
+        case .rotation: return .rotation
+        case .colorR: return .colorR
+        case .colorG: return .colorG
+        case .colorB: return .colorB
+        case .colorA: return .colorA
+        }
+    }
+}
+
+extension Components.Schemas.Midi2ControlTarget {
+    func asTarget() -> AnimationKit.Midi2ControlTarget {
+        switch self {
+        case .opacity: return .opacity
+        case .positionX: return .positionX
+        case .positionY: return .positionY
+        case .scale: return .scale
+        case .rotation: return .rotation
+        case .colorR: return .colorR
+        case .colorG: return .colorG
+        case .colorB: return .colorB
+        case .colorA: return .colorA
+        }
+    }
+}
+
+extension AnimationKit.Midi2AutomationTrack {
+    func asGenerated() -> Components.Schemas.Midi2AutomationTrack {
+        .init(
+            channel: Int32(channel),
+            target: target.asGenerated(),
+            timeline: timeline.asGenerated()
+        )
+    }
+}
+
+extension Components.Schemas.Midi2AutomationTrack {
+    func asTrack() -> AnimationKit.Midi2AutomationTrack {
+        let beatTimeline = timeline.asBeatTimeline()
+        let channelValue = channel.flatMap { value -> UInt8? in
+            guard value >= 0 && value <= 255 else { return nil }
+            return UInt8(value)
+        } ?? 0
+        return AnimationKit.Midi2AutomationTrack(
+            channel: channelValue,
+            target: target.asTarget(),
+            timeline: beatTimeline
+        )
+    }
+}
+
+extension AnimationKit.Midi2Timeline {
+    func asGenerated() -> Components.Schemas.Midi2Timeline {
+        .init(
+            timeModel: timeModel.asGenerated(),
+            tracks: tracks.map { $0.asGenerated() }
+        )
+    }
+}
+
+extension Components.Schemas.Midi2Timeline {
+    func asMidiTimeline() -> AnimationKit.Midi2Timeline {
+        AnimationKit.Midi2Timeline(
+            timeModel: timeModel.asBeatTimeModel(),
+            tracks: tracks.map { $0.asTrack() }
+        )
     }
 }
 

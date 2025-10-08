@@ -19,8 +19,45 @@ final class SerializationTests: XCTestCase {
         let colorR = Timeline([
             Keyframe(time: 0.0, value: 0.5)
         ])
+        let midiTimeline = Midi2Timeline(
+            timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+            tracks: [
+                Midi2AutomationTrack(
+                    channel: 0,
+                    target: .opacity,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 0.0, easing: .linear),
+                        BeatKeyframe(beat: 1.0, value: 1.0, easing: .easeIn)
+                    ]
+                ),
+                Midi2AutomationTrack(
+                    channel: 1,
+                    target: .positionX,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 10.0),
+                        BeatKeyframe(beat: 1.0, value: 20.0)
+                    ]
+                ),
+                Midi2AutomationTrack(
+                    channel: 1,
+                    target: .positionY,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 0.0),
+                        BeatKeyframe(beat: 1.0, value: 0.0)
+                    ]
+                ),
+                Midi2AutomationTrack(
+                    channel: 2,
+                    target: .colorR,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 0.5)
+                    ]
+                )
+            ]
+        )
         let anim = Animation(
             duration: 1.5,
+            midiTimeline: midiTimeline,
             opacity: opacity,
             position: PositionTimeline(x: posX, y: posY),
             color: ColorTimeline(r: colorR)
@@ -33,6 +70,55 @@ final class SerializationTests: XCTestCase {
         // Build expected programmatically to keep it stable and readable.
         let expectedDict: [String: Any] = [
             "duration": 1.5,
+            "midiTimeline": [
+                "timeModel": [
+                    "tempo": ["beatsPerMinute": 60.0],
+                    "beatOffset": 0.0,
+                    "wallTimeOffset": 0.0,
+                    "enableMIDI2Clock": false
+                ],
+                "tracks": [
+                    [
+                        "channel": 0,
+                        "target": "opacity",
+                        "timeline": [
+                            "keyframes": [
+                                ["beat": 0.0, "value": 0.0, "easing": "linear"],
+                                ["beat": 1.0, "value": 1.0, "easing": "easeIn"]
+                            ]
+                        ]
+                    ],
+                    [
+                        "channel": 1,
+                        "target": "positionX",
+                        "timeline": [
+                            "keyframes": [
+                                ["beat": 0.0, "value": 10.0, "easing": "linear"],
+                                ["beat": 1.0, "value": 20.0, "easing": "linear"]
+                            ]
+                        ]
+                    ],
+                    [
+                        "channel": 1,
+                        "target": "positionY",
+                        "timeline": [
+                            "keyframes": [
+                                ["beat": 0.0, "value": 0.0, "easing": "linear"],
+                                ["beat": 1.0, "value": 0.0, "easing": "linear"]
+                            ]
+                        ]
+                    ],
+                    [
+                        "channel": 2,
+                        "target": "colorR",
+                        "timeline": [
+                            "keyframes": [
+                                ["beat": 0.0, "value": 0.5, "easing": "linear"]
+                            ]
+                        ]
+                    ]
+                ]
+            ],
             "opacity": [
                 "keyframes": [
                     ["time": 0.0, "value": 0.0, "easing": "linear"],
@@ -68,10 +154,22 @@ final class SerializationTests: XCTestCase {
     }
 
     func testSerializationRejectsCompositeAnimations() {
-        let clip = AnimationClip(duration: 1.0)
+        let clip = AnimationClip(
+            duration: 1.0,
+            midiTimeline: Midi2Timeline(
+                timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+                tracks: []
+            )
+        )
         let composite = Animation.sequence {
             Animation.clip(clip)
-            Animation(duration: 1.0)
+            Animation(
+                duration: 1.0,
+                midiTimeline: Midi2Timeline(
+                    timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+                    tracks: []
+                )
+            )
         }
 
         XCTAssertThrowsError(try AnimationSerialization.toSchema(composite)) { error in
@@ -86,8 +184,27 @@ final class SerializationTests: XCTestCase {
             .init(time: 0.0, value: 0.0, easing: .linear),
             .init(time: 1.0, value: 1.0, easing: .easeIn)
         ])
+        let midiTimeline = Components.Schemas.Midi2Timeline(
+            timeModel: .init(
+                tempo: .init(beatsPerMinute: 60.0),
+                beatOffset: 0,
+                wallTimeOffset: 0,
+                enableMIDI2Clock: false
+            ),
+            tracks: [
+                .init(
+                    channel: 0,
+                    target: .opacity,
+                    timeline: .init(keyframes: [
+                        .init(beat: 0.0, value: 0.0, easing: .linear),
+                        .init(beat: 1.0, value: 1.0, easing: .easeIn)
+                    ])
+                )
+            ]
+        )
         let animation = Components.Schemas.Animation(
             duration: 1.0,
+            midiTimeline: midiTimeline,
             opacity: timeline
         )
         let updatedAt = Date(timeIntervalSince1970: 120)
@@ -125,7 +242,20 @@ final class SerializationTests: XCTestCase {
     }
 
     func testDraftToUpdateRequest() throws {
-        let anim = Animation(duration: 2.0)
+        let anim = Animation(
+            duration: 2.0,
+            midiTimeline: Midi2Timeline(
+                timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+                tracks: [
+                    Midi2AutomationTrack(
+                        target: .opacity,
+                        events: [
+                            BeatKeyframe(beat: 0.0, value: 0.0)
+                        ]
+                    )
+                ]
+            )
+        )
         let draft = AnimationDraft(animation: anim, name: "Updated", tags: ["tag"])
         let request = try AnimationSerialization.toSchema(draft)
         XCTAssertEqual(request.name, "Updated")
