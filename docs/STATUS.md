@@ -1,41 +1,34 @@
 # AnimationKit — Status Report
 
-- Timestamp (UTC): 2025-10-08T18:45:00Z
-- Branch: main
-- HEAD: <pending>
+- Timestamp (UTC): 2025-10-08T18:11:10Z
+- Branch: work
+- HEAD: 58cca59a1ab6ad1928bf8239205d03904dfbb1b5
 
 ## Summary
-- SwiftPM manifest updated to the latest Apple Swift OpenAPI packages (`swift-openapi-generator` 1.10.3, runtime 1.8.3, URLSession 1.2.0).
-- Core DSL exposes documented public API covering keyframes, timelines, clips, groups, and sequences with deterministic evaluation.
-- Beat-based time model (`BeatTimeModel`, `BeatTimeline`) converts between beats and wall-clock seconds with an opt-in MIDI 2.0 clock flag.
-- Client façade now provides typed errors, retry/backoff controls, monitoring hooks, and new endpoints for listing, fetching, updating, and bulk-evaluating animations.
-- Serialization utilities bridge between transport schemas and DSL types (drafts, resources, bulk evaluation samples) with golden tests.
-- OpenAPI specification is unified at the repository root; the SwiftPM plugin now consumes the same document—which captures animation CRUD, evaluation, and MIDI timeline endpoints—for documentation and generation.
+- Core animation DSL is expressed as an enum tree with clips, groups, and sequences, providing deterministic evaluation helpers and builder conveniences for composing animations.
+- Beat-domain timing utilities and MIDI 2.0 automation timelines translate to wall-clock coordinates and feed back into the DSL, keeping experimental clocking behind a flag.
+- The client façade layers typed errors, configurable retry/backoff, and lightweight monitoring over the generated OpenAPI client while exposing health, evaluation, submission, and CRUD endpoints.
+- Serialization utilities bridge DSL clips and transport schemas, enforcing MIDI timelines on submission and covering draft/resource shapes with unit tests.
+- Cross-platform CI targets macOS 14 (Xcode 16.2) and Linux (Swift 6.0 container), running build and test workflows on pushes and pull requests.
 
-## Structure
-- Manifest: Package.swift
-- Core DSL: Sources/AnimationKit (Animation.swift, Timeline.swift, Keyframe.swift, Parameters.swift, BeatTime.swift)
-- Client façade: Sources/AnimationKitClient/ServiceClient.swift (typed errors, retry policy, monitoring hooks)
-- Serialization: Sources/AnimationKitClient/Serialization.swift (bidirectional codecs, transport models)
-- Tests:
-  - Tests/AnimationKitTests/TimelineTests.swift
-  - Tests/AnimationKitTests/AnimationCompositionTests.swift
-  - Tests/AnimationKitTests/BeatTimeTests.swift
-  - Tests/AnimationKitClientTests/ClientTests.swift
-  - Tests/AnimationKitClientTests/SerializationTests.swift
-- Docs: README.md, docs/README.md, docs/RELEASE_PLAN.md, docs/CHANGELOG.md (new)
+## Repository Structure & Assets
+- SwiftPM manifest pins Apple OpenAPI packages and wires the generator plugin into the client target with the canonical `openapi.yaml` resource.
+- Core sources live under `Sources/AnimationKit`, client façade code under `Sources/AnimationKitClient`, and corresponding tests under `Tests/AnimationKitTests` and `Tests/AnimationKitClientTests`.
+- Documentation includes repo and feature guides plus the evolving release plan and changelog housed under `docs/`.
 
-## Decisions
-- Treat complex animation structures as an enum tree (`Animation.clip/group/sequence`) to keep evaluation deterministic and extensible.
-- Restrict client serialization to primitive clips until composite transport formats are defined, surfacing a specific error otherwise.
-- Represent beat-driven timing with explicit models to enable future MIDI 2.0 clock integration without runtime globals.
+## Recent Audit Highlights
+- MIDI-aware evaluation extends throughout the stack: `AnimationClip` normalizes duration to MIDI automation, and `Midi2Timeline` maps beat automation to parameter states.
+- Client serialization intentionally rejects composite animations and clips without MIDI timelines, preventing transport drift.
+- Golden-style tests assert transport encoding/decoding symmetry for animations, drafts, and evaluation batches.
 
-## Open Items / Next Steps
-- Add examples and documentation walkthroughs once DSL stabilizes further.
-- Wire CI, linting, and doc coverage tooling (Milestone 3).
-- Increase test coverage for complex client serialization and DSL evaluation (Milestone 3).
+## Risks & Follow-Ups
+- Transport layer cannot yet submit grouped or sequenced animations; serialization throws `unsupportedComposition`.
+- Submission also requires every clip to include a MIDI timeline, limiting use cases that rely solely on wall-time timelines.
+- Examples remain placeholders and developer onboarding lacks a concrete walkthrough.
+- Documentation and lint tooling are not enforced in CI; no doc coverage or style checks accompany the build matrix.
 
-## Housekeeping
-- `references/` remains ignored for external repositories.
-- Generated OpenAPI sources stay out of version control; plugin runs at build time.
-- Conventional commits remain the default workflow.
+## Next Steps
+- Implement serialization strategies (or fallback transports) for grouped/sequenced animations and wall-time-only clips to unlock broader DSL coverage.
+- Flesh out end-to-end examples demonstrating DSL composition, evaluation, and client submission flows.
+- Add quality gates—coverage thresholds, lint/format checks, and doc coverage verification—to the CI workflows ahead of the release candidate.
+- Track outstanding release deliverables in the refreshed release plan and execute the publication checklist.
