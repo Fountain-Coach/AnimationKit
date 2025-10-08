@@ -20,6 +20,27 @@ paths:
                   status:
                     type: string
                 required: [status]
+  /animations:
+    post:
+      operationId: submitAnimation
+      summary: Submit an animation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Animation'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                required: [id]
   /evaluate:
     post:
       operationId: evaluateTimeline
@@ -71,3 +92,11 @@ components:
           items:
             $ref: '#/components/schemas/Keyframe'
       required: [keyframes]
+    Animation:
+      type: object
+      properties:
+        duration:
+          type: number
+        opacity:
+          $ref: '#/components/schemas/Timeline'
+      required: [duration]
