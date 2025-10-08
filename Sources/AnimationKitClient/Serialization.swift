@@ -2,16 +2,27 @@ import Foundation
 import AnimationKit
 
 public enum AnimationSerialization {
-    public static func toSchema(_ animation: AnimationKit.Animation) -> Components.Schemas.Animation {
+    public static func toSchema(_ animation: AnimationKit.Animation) throws -> Components.Schemas.Animation {
+        guard let clip = animation.clip else {
+            throw AnimationSerializationError.unsupportedComposition
+        }
+        return toSchema(clip)
+    }
+
+    public static func toSchema(_ clip: AnimationKit.AnimationClip) -> Components.Schemas.Animation {
         .init(
-            duration: animation.duration,
-            opacity: animation.opacity?.asGenerated(),
-            position: animation.position?.asGenerated(),
-            scale: animation.scale?.asGenerated(),
-            rotation: animation.rotation?.asGenerated(),
-            color: animation.color?.asGenerated()
+            duration: clip.duration,
+            opacity: clip.opacity?.asGenerated(),
+            position: clip.position?.asGenerated(),
+            scale: clip.scale?.asGenerated(),
+            rotation: clip.rotation?.asGenerated(),
+            color: clip.color?.asGenerated()
         )
     }
+}
+
+public enum AnimationSerializationError: Error, Sendable {
+    case unsupportedComposition
 }
 
 extension AnimationKit.Easing {

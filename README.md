@@ -4,14 +4,20 @@ A Swift package for a declarative animation API used in Fountain Coach, backed b
 
 Status: early scaffolding. See `AGENTS.md` for the full working plan and conventions.
 
+## Supported Toolchains & Platforms
+- Swift toolchain: Swift 6.0 toolset (builds with Swift 5.9+; validated against Swift 6.0 snapshots)
+- Xcode: 15.3 or newer (16.x preferred)
+- Platforms: macOS 13+, iOS 16+
+
 ## Goals
 - Declarative animation DSL (compose, group, sequence, keyframes, easing)
+- Beat-based time model with conversion to wall-clock seconds
 - Clean separation between core DSL and transport (OpenAPI client)
 - Generated client via Apple’s Swift OpenAPI plugin (as in Engraver)
 - Solid tests and examples, reproducible builds, minimal global state
 
 ## Quick Start (dev)
-1. Ensure recent Swift toolchain (5.9+) or Xcode (15.3+, prefer 16).
+1. Ensure recent Swift toolchain (Swift 6 toolset / 5.9+) or Xcode (15.3+, prefer 16).
 2. Clone the repo and optionally clone references locally (ignored by git):
    ```bash
    git clone https://github.com/Fountain-Coach/AnimationKit.git

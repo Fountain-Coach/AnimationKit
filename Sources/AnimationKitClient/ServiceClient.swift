@@ -42,7 +42,7 @@ public struct AnimationServiceClient: Sendable {
 
     /// POST /animations with DSL `Animation`, returns server-side id.
     public func submit(animation: AnimationKit.Animation) async throws -> String {
-        let payload = Operations.submitAnimation.Input.Body.json(AnimationSerialization.toSchema(animation))
+        let payload = Operations.submitAnimation.Input.Body.json(try AnimationSerialization.toSchema(animation))
         let output = try await client.submitAnimation(body: payload)
         return try output.created.body.json.id
     }

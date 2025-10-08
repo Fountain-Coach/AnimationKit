@@ -26,7 +26,7 @@ final class SerializationTests: XCTestCase {
             color: ColorTimeline(r: colorR)
         )
 
-        let schema = AnimationSerialization.toSchema(anim)
+        let schema = try AnimationSerialization.toSchema(anim)
         let data = try JSONEncoder.withSortedKeys.encode(schema)
         let json = String(data: data, encoding: .utf8)!
 
@@ -65,6 +65,20 @@ final class SerializationTests: XCTestCase {
         let expectedJSON = String(data: expectedData, encoding: .utf8)!
 
         XCTAssertEqual(json, expectedJSON)
+    }
+
+    func testSerializationRejectsCompositeAnimations() {
+        let clip = AnimationClip(duration: 1.0)
+        let composite = Animation.sequence {
+            Animation.clip(clip)
+            Animation(duration: 1.0)
+        }
+
+        XCTAssertThrowsError(try AnimationSerialization.toSchema(composite)) { error in
+            guard case AnimationSerializationError.unsupportedComposition = error else {
+                return XCTFail("Unexpected error: \(error)")
+            }
+        }
     }
 }
 
