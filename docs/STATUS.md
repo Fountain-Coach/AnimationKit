@@ -1,6 +1,6 @@
 # AnimationKit — Status Report
 
-- Timestamp (UTC): 2025-10-08T16:04:06Z
+- Timestamp (UTC): 2025-10-08T18:45:00Z
 - Branch: main
 - HEAD: <pending>
 
@@ -10,6 +10,7 @@
 - Beat-based time model (`BeatTimeModel`, `BeatTimeline`) converts between beats and wall-clock seconds with an opt-in MIDI 2.0 clock flag.
 - Client façade now provides typed errors, retry/backoff controls, monitoring hooks, and new endpoints for listing, fetching, updating, and bulk-evaluating animations.
 - Serialization utilities bridge between transport schemas and DSL types (drafts, resources, bulk evaluation samples) with golden tests.
+- OpenAPI specification is unified at the repository root; the SwiftPM plugin now consumes the same document—which captures animation CRUD, evaluation, and MIDI timeline endpoints—for documentation and generation.
 
 ## Structure
 - Manifest: Package.swift
