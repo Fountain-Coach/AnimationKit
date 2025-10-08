@@ -27,18 +27,22 @@ The following tasks translate the current repository status into an actionable p
 
 ## Milestone 2 — Client Reliability & Transport Features
 
-- [ ] **Define typed client errors and retry policy**
+- [x] **Define typed client errors and retry policy**
   - Create error enums and configurable retry/backoff strategy inside `AnimationKitClient` façade.
   - Deliverable: Error types, retry logic, configuration documentation, and client tests using mocks.
-- [ ] **Enhance OpenAPI schema coverage**
+  - Result: `AnimationServiceError` categorises HTTP, transport, decoding, and retry exhaustion failures with configurable `RetryConfiguration`; tests cover retries and exhaustion handling.
+- [x] **Enhance OpenAPI schema coverage**
   - Extend `openapi.yaml` with endpoints for animation retrieval/listing, updates, and bulk evaluation.
   - Deliverable: Updated schema, regenerated client outputs (build-only), façade adaptations, and new tests.
-- [ ] **Add serialization bridging for new endpoints**
+  - Result: `openapi.yaml` now includes list/get/update animation routes and bulk evaluation; façade exposes `listAnimations`, `getAnimation`, `updateAnimation`, and multi-sample evaluate helpers with mock-backed coverage.
+- [x] **Add serialization bridging for new endpoints**
   - Implement codecs in `Serialization.swift` for newly modeled transport types.
   - Deliverable: Serialization utilities with snapshot or golden tests.
-- [ ] **Implement health monitoring hooks**
+  - Result: New `AnimationDraft`, `RemoteAnimation`, and `AnimationPage` bridging plus reverse timeline codecs with deterministic tests.
+- [x] **Implement health monitoring hooks**
   - Provide lightweight observability (metrics hooks or delegate callbacks) around client calls.
   - Deliverable: Protocols/types exposed publicly and exercised via unit tests.
+  - Result: `AnimationServiceClientMonitor` surfaces request/response metrics; recording monitor test validates call counts and durations.
 
 ## Milestone 3 — Quality Gates & Tooling
 
