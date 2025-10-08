@@ -1,0 +1,490 @@
+openapi: "3.1.0"
+info:
+  title: "AnimationKit API"
+  version: "0.1.0"
+  description: |
+    AnimationKit service for managing and playing animation timelines.
+    A timeline is a sequence of timed MIDI 2.0 events (Universal MIDI Packets)
+    that can drive animations or musical sequences. This API allows clients to 
+    create, query, update, delete, and play timelines. It also supports importing 
+    and exporting timelines in **OpenTimelineIO (OTIO)** format for interoperability.
+    
+    **UMP Timeline Model:** Timeline events are represented as JSON objects matching 
+    the MIDI 2.0 Universal MIDI Packet structure (aligned with Fountain midi2). 
+    Each event has a timestamp (seconds) and a MIDI message (e.g. Note On, Note Off, etc.). 
+    The message fields (group, channel, note, velocity, etc.) conform to the MIDI 2.0 spec.
+    
+    **OTIO Integration:** OTIO is an open interchange format for editorial timelines:contentReference[oaicite:34]{index=34}. 
+    Use the `/timelines/importOTIO` endpoint to import an OTIO timeline (JSON) – it will be converted 
+    into a UMP-based timeline. Use `GET /timelines/{id}/otio` to export any timeline to OTIO (JSON) 
+    for use in external tools.
+    
+    **Authentication:** All endpoints require a Bearer token. Include `Authorization: Bearer <token>` 
+    or `x-api-key: <token>` in requests. The token is configured on the server (e.g., via SecretStore):contentReference[oaicite:35]{index=35}.
+servers:
+  - url: "http://localhost:8080"
+    description: "Local development server"
+security:
+  - bearerAuth: []   # Global security: all endpoints require auth
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT   # using a simple bearer token (not necessarily JWT, but format is a opaque token)
+  schemas:
+    Timeline:
+      type: object
+      required: [id, events]
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the timeline record.
+        name:
+          type: string
+          description: An optional human-friendly name for the timeline.
+        description:
+          type: string
+          description: Optional longer description of the timeline.
+        events:
+          type: array
+          description: "Ordered list of timeline events. Each event has a time (s) and a MIDI 2.0 UMP message."
+          items:
+            $ref: "#/components/schemas/UmpEvent"
+        duration:
+          type: number
+          format: float
+          description: "Total duration of the timeline in seconds. (Optional, can be derived from events.)"
+      example:
+        id: "timeline-123"
+        name: "Demo Timeline"
+        description: "Example timeline with two note events"
+        events:
+          - time: 0.0
+            message:
+              messageType: 4
+              group: 0
+              statusNibble: 9    # Note On (0x9)
+              channel: 0
+              body:
+                noteNumber: 60
+                velocity16: 100
+                attributeType: 0
+                attributeData16: 0
+          - time: 1.0
+            message:
+              messageType: 4
+              group: 0
+              statusNibble: 8    # Note Off (0x8)
+              channel: 0
+              body:
+                noteNumber: 60
+                velocity16: 0
+                attributeType: 0
+                attributeData16: 0
+    UmpEvent:
+      type: object
+      required: [time, message]
+      properties:
+        time:
+          type: number
+          format: float
+          description: "Timestamp in seconds from the start of the timeline when this event occurs."
+        message:
+          description: "MIDI 2.0 UMP message object. Format varies based on messageType."
+          oneOf:
+            - $ref: "#/components/schemas/UmpPacket32"
+            - $ref: "#/components/schemas/UmpPacket64"
+            - $ref: "#/components/schemas/UmpPacket128"
+    UmpPacket32:
+      type: object
+      description: "32-bit UMP (Utility or System message)."
+      properties:
+        messageType:
+          type: integer
+          enum: [0, 1, 2, 3, 15]   # Utility=0, System=1, MIDI1 Channel Voice=2, SysEx7=3, Stream=15
+        group:
+          type: integer
+          minimum: 0
+          maximum: 15
+          description: MIDI group (0-15). For Utility and Stream messages in v1.1+, use 0.
+        statusByte:
+          type: integer
+          minimum: 0
+          maximum: 255
+          description: "Status byte or further classification of the message (meaning depends on messageType)."
+        data:
+          type: array
+          items: { type: integer, minimum: 0, maximum: 255 }
+          description: "Up to 2 data bytes for 32-bit messages (e.g., System Common messages)."
+      required: [messageType]
+    UmpPacket64:
+      type: object
+      description: "64-bit UMP (MIDI 2.0 Channel Voice message):contentReference[oaicite:36]{index=36}:contentReference[oaicite:37]{index=37}."
+      properties:
+        messageType:
+          type: integer
+          enum: [4]   # MIDI2 Channel Voice messages have type 4
+        group:
+          $ref: "#/components/schemas/Group"
+        statusNibble:
+          $ref: "#/components/schemas/Midi2StatusNibble"
+        channel:
+          $ref: "#/components/schemas/Uint4"
+        # The body of a 64-bit message depends on statusNibble (which defines the specific message)
+        body:
+          oneOf:
+            - $ref: "#/components/schemas/Midi2.NoteOn"
+            - $ref: "#/components/schemas/Midi2.NoteOff"
+            - $ref: "#/components/schemas/Midi2.PolyPressure"
+            - $ref: "#/components/schemas/Midi2.ControlChange"
+            - $ref: "#/components/schemas/Midi2.ProgramChange"
+            - $ref: "#/components/schemas/Midi2.ChannelPressure"
+            - $ref: "#/components/schemas/Midi2.PitchBend"
+            # (Other MIDI2 channel voice messages could be added, e.g. RPN/NRPN, but omitted for brevity)
+      required: [messageType, group, statusNibble, channel, body]
+    UmpPacket128:
+      type: object
+      description: "128-bit UMP (Data messages: SysEx8/MIDI2 Stream, or Flex Data):contentReference[oaicite:38]{index=38}:contentReference[oaicite:39]{index=39}."
+      properties:
+        messageType:
+          type: integer
+          enum: [5, 13]   # 5 = SysEx8/MDS, 13 = Flex Data
+        group:
+          $ref: "#/components/schemas/Group"
+        data:
+          type: array
+          items: { type: integer, minimum: 0, maximum: 255 }
+          description: Up to 14 bytes of data (for 128-bit messages).
+      required: [messageType, data]
+    # Scalar and MIDI-specific types:
+    Group:
+      type: integer
+      minimum: 0
+      maximum: 15
+      description: MIDI Group number (0-15).
+    Uint4:
+      type: integer
+      minimum: 0
+      maximum: 15
+    Uint7:
+      type: integer
+      minimum: 0
+      maximum: 127
+    Uint14:
+      type: integer
+      minimum: 0
+      maximum: 16383
+    Uint16:
+      type: integer
+      minimum: 0
+      maximum: 65535
+    Uint32:
+      type: integer
+      minimum: 0
+      maximum: 4294967295
+    Midi2StatusNibble:
+      type: integer
+      minimum: 8
+      maximum: 15
+      description: "Low 4 bits of Status Byte indicating the MIDI 2.0 Channel Voice message type (0x8 = NoteOff, 0x9 = NoteOn, 0xA = Poly Pressure, 0xB = CC, 0xC = Program, 0xD = Channel Pressure, 0xE = Pitch Bend)."
+    NoteAttributeType:
+      type: integer
+      minimum: 0
+      maximum: 127
+      description: "Note attribute type (for future use, per MIDI2 spec; 0 = none/default)."
+    # MIDI2 Channel Voice message bodies:
+    "Midi2.NoteOn":
+      type: object
+      description: "Status 0x9 – Note On (with 16-bit velocity):contentReference[oaicite:40]{index=40}:contentReference[oaicite:41]{index=41}."
+      properties:
+        noteNumber:
+          $ref: "#/components/schemas/Uint7"
+        velocity16:
+          $ref: "#/components/schemas/Uint16"
+        attributeType:
+          $ref: "#/components/schemas/NoteAttributeType"
+        attributeData16:
+          $ref: "#/components/schemas/Uint16"
+      required: [noteNumber, velocity16]
+    "Midi2.NoteOff":
+      type: object
+      description: "Status 0x8 – Note Off (with 16-bit velocity):contentReference[oaicite:42]{index=42}:contentReference[oaicite:43]{index=43}."
+      properties:
+        noteNumber:
+          $ref: "#/components/schemas/Uint7"
+        velocity16:
+          $ref: "#/components/schemas/Uint16"
+        attributeType:
+          $ref: "#/components/schemas/NoteAttributeType"
+        attributeData16:
+          $ref: "#/components/schemas/Uint16"
+      required: [noteNumber, velocity16]
+    "Midi2.PolyPressure":
+      type: object
+      description: "Status 0xA – Polyphonic Key Pressure (32-bit pressure)."
+      properties:
+        noteNumber: $ref: "#/components/schemas/Uint7"
+        polyPressure32: $ref: "#/components/schemas/Uint32"
+      required: [noteNumber, polyPressure32]
+    "Midi2.ControlChange":
+      type: object
+      description: "Status 0xB – Control Change (32-bit value)."
+      properties:
+        control: $ref: "#/components/schemas/Uint7"
+        controlValue32: $ref: "#/components/schemas/Uint32"
+      required: [control, controlValue32]
+    "Midi2.ProgramChange":
+      type: object
+      description: "Status 0xC – Program Change (with optional Bank)."
+      properties:
+        program: $ref: "#/components/schemas/Uint7"
+        bankMsb: $ref: "#/components/schemas/Uint7"
+        bankLsb: $ref: "#/components/schemas/Uint7"
+        bankValid:
+          type: boolean
+          description: "If true, bankMsb/Lsb are present; if false, no bank change."
+      required: [program]
+    "Midi2.ChannelPressure":
+      type: object
+      description: "Status 0xD – Channel Pressure (32-bit)."
+      properties:
+        channelPressure32: $ref: "#/components/schemas/Uint32"
+      required: [channelPressure32]
+    "Midi2.PitchBend":
+      type: object
+      description: "Status 0xE – Pitch Bend (32-bit)."
+      properties:
+        pitchBend32: $ref: "#/components/schemas/Uint32"
+      required: [pitchBend32]
+    OTIO:   # (Representing an OpenTimelineIO timeline as an opaque JSON object)
+      type: object
+      description: |
+        A JSON object in OpenTimelineIO format representing a timeline. 
+        This will typically have keys like "OTIO_SCHEMA": "Timeline.x", "tracks", "children", etc., 
+        per the OTIO specification:contentReference[oaicite:44]{index=44}:contentReference[oaicite:45]{index=45}. 
+        The exact structure is not validated here; the server will interpret it using an OTIO library.
+paths:
+  /timelines:
+    get:
+      summary: List all timelines
+      description: |
+        Retrieve a list of all animation timelines. 
+        This returns an array of timeline metadata and/or full objects.
+      operationId: listTimelines
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: A list of timelines.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Timeline"
+                # We wrap in an object with "items" to allow future expansion (pagination tokens, etc).
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"   # (Assume a generic error schema defined elsewhere)
+    post:
+      summary: Create a new timeline
+      description: |
+        Create a new animation timeline by providing the timeline JSON. 
+        The request body should include the timeline's events in UMP format. 
+        The server will assign an `id` if not provided.
+      operationId: createTimeline
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: $ref: "#/components/schemas/Timeline"
+      responses:
+        "201":
+          description: Timeline created successfully.
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Timeline"
+          headers:
+            Location:
+              description: URL of the created timeline resource.
+              schema: 
+                type: string
+        "400":
+          description: Invalid input (malformed timeline).
+        default:
+          description: Error
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Error"
+  /timelines/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The timeline's unique identifier.
+    get:
+      summary: Get a timeline by ID
+      operationId: getTimeline
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: The timeline data.
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Timeline"
+        "404":
+          description: Timeline not found.
+        default:
+          description: Error
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Error"
+    put:
+      summary: Update/replace a timeline
+      operationId: updateTimeline
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: $ref: "#/components/schemas/Timeline"
+      responses:
+        "200":
+          description: Timeline updated successfully.
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Timeline"
+        "201":
+          description: Timeline created (if it did not exist and was thus newly created by PUT).
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Timeline"
+        "400":
+          description: Invalid timeline data.
+        "404":
+          description: Timeline not found (if expecting existing).
+        default:
+          description: Error
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete a timeline
+      operationId: deleteTimeline
+      security:
+        - bearerAuth: []
+      responses:
+        "204":
+          description: Timeline deleted successfully.
+        "404":
+          description: Timeline not found.
+        default:
+          description: Error
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Error"
+  /timelines/{id}/play:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: 
+          type: string
+        description: Timeline ID to play.
+    post:
+      summary: Play a timeline
+      description: |
+        Begin playback of the specified timeline. The server will stream the timeline's MIDI events 
+        to the output (synth/animation engine). This returns immediately after scheduling playback.
+        
+        **Note:** Ensure the server is connected to an appropriate MIDI output or animation subsystem. 
+        This endpoint just triggers playback; it does not return the played data.
+      operationId: playTimeline
+      security:
+        - bearerAuth: []
+      responses:
+        "202":
+          description: Playback started (accepted). The timeline is now playing.
+        "404":
+          description: Timeline not found.
+        default:
+          description: Error or playback failure
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Error"
+  /timelines/importOTIO:
+    post:
+      summary: Import a timeline from OTIO
+      description: |
+        Create a new timeline by importing an OpenTimelineIO file. 
+        The request should contain OTIO JSON data; the server will convert it into a Timeline (UMP events).
+        
+        This returns the created timeline in AnimationKit's native format.
+      operationId: importTimelineOTIO
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: $ref: "#/components/schemas/OTIO"
+            example:
+              OTIO_SCHEMA: "Timeline.1"
+              name: "Imported Timeline"
+              tracks: { OTIO_SCHEMA: "Stack.1", children: [] }
+              # ... (an example minimal OTIO structure) ...
+      responses:
+        "201":
+          description: Timeline imported successfully.
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Timeline"
+        "400":
+          description: OTIO parse or conversion error.
+        default:
+          description: Error
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Error"
+  /timelines/{id}/otio:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: The timeline ID to export.
+    get:
+      summary: Export a timeline to OTIO
+      description: |
+        Retrieve the timeline in OpenTimelineIO (OTIO) format. The response is a JSON representation 
+        of the timeline as an OTIO Timeline, which can be used in editorial tools.
+      operationId: exportTimelineOTIO
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: OTIO timeline returned.
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/OTIO"
+        "404":
+          description: Timeline not found.
+        default:
+          description: Error
+          content:
+            application/json:
+              schema: $ref: "#/components/schemas/Error"
