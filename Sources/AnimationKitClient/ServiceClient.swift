@@ -39,32 +39,9 @@ public struct AnimationServiceClient: Sendable {
 
     /// POST /animations with DSL `Animation`, returns server-side id.
     public func submit(animation: AnimationKit.Animation) async throws -> String {
-        let payload = Operations.submitAnimation.Input.Body.json(animation.asGenerated())
+        let payload = Operations.submitAnimation.Input.Body.json(AnimationSerialization.toSchema(animation))
         let output = try await client.submitAnimation(body: payload)
         return try output.created.body.json.id
-    }
-}
-
-private extension AnimationKit.Easing {
-    func asGenerated() -> Components.Schemas.Easing {
-        switch self {
-        case .linear: return .linear
-        case .easeIn: return .easeIn
-        case .easeOut: return .easeOut
-        case .easeInOut: return .easeInOut
-        }
-    }
-}
-
-private extension AnimationKit.Keyframe {
-    func asGenerated() -> Components.Schemas.Keyframe {
-        .init(time: time, value: value, easing: easing.asGenerated())
-    }
-}
-
-private extension AnimationKit.Timeline {
-    func asGenerated() -> Components.Schemas.Timeline {
-        .init(keyframes: keyframes.map { $0.asGenerated() })
     }
 }
 

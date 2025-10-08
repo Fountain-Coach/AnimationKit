@@ -28,3 +28,9 @@ public struct ParameterState: Sendable {
     public var rotation: Double?
     public var color: RGBA?
 }
+
+extension RGBA {
+    func setting(r: Double? = nil, g: Double? = nil, b: Double? = nil, a: Double? = nil) -> RGBA {
+        RGBA(r: r ?? self.r, g: g ?? self.g, b: b ?? self.b, a: a ?? self.a)
+    }
+}
