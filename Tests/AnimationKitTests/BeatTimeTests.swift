@@ -39,11 +39,49 @@ final class BeatTimeTests: XCTestCase {
 
         let clip = AnimationClip(
             duration: 2.0,
+            midiTimeline: Midi2Timeline(
+                timeModel: model,
+                tracks: [
+                    Midi2AutomationTrack(
+                        target: .opacity,
+                        events: [
+                            BeatKeyframe(beat: 0.0, value: 0.0),
+                            BeatKeyframe(beat: 4.0, value: 1.0)
+                        ]
+                    )
+                ]
+            ),
             opacity: Timeline(beatTimeline: beatTimeline, model: model)
         )
 
         let state = clip.state(at: BeatTime(2.0), using: model)
         let opacity = try XCTUnwrap(state.opacity)
         XCTAssertEqual(opacity, 0.5, accuracy: 1e-9)
+    }
+
+    func testMidiTimelineEvaluatesAgainstTimeModel() throws {
+        let model = BeatTimeModel(tempo: Tempo(beatsPerMinute: 120))
+        let timeline = Midi2Timeline(
+            timeModel: model,
+            tracks: [
+                Midi2AutomationTrack(
+                    target: .scale,
+                    events: [
+                        BeatKeyframe(beat: 0.0, value: 1.0),
+                        BeatKeyframe(beat: 2.0, value: 3.0)
+                    ]
+                )
+            ]
+        )
+
+        let beatState = timeline.state(at: BeatTime(1.0))
+        let beatScale = try XCTUnwrap(beatState.scale)
+        XCTAssertEqual(beatScale, 2.0, accuracy: 1e-9)
+
+        let secondsState = timeline.state(at: 0.5)
+        let secondsScale = try XCTUnwrap(secondsState.scale)
+        XCTAssertEqual(secondsScale, 2.0, accuracy: 1e-9)
+
+        XCTAssertEqual(timeline.duration, 1.0, accuracy: 1e-9)
     }
 }

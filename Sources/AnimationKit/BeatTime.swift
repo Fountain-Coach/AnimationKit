@@ -133,6 +133,134 @@ public struct BeatTimeline: Sendable, Equatable, Codable {
     }
 }
 
+/// Enumerates the supported midi2 automation targets that map to parameter channels.
+public enum Midi2ControlTarget: String, Sendable, Equatable, Codable {
+    case opacity
+    case positionX
+    case positionY
+    case scale
+    case rotation
+    case colorR
+    case colorG
+    case colorB
+    case colorA
+}
+
+/// A midi2 automation track expressed as beat-based events.
+public struct Midi2AutomationTrack: Sendable, Equatable, Codable {
+    /// Logical channel for the track (mirrors midi2 grouping semantics).
+    public var channel: UInt8
+    /// Target parameter that the automation controls.
+    public var target: Midi2ControlTarget
+    /// Beat-domain timeline describing the automation.
+    public var timeline: BeatTimeline
+
+    /// Creates a midi2 automation track.
+    public init(
+        channel: UInt8 = 0,
+        target: Midi2ControlTarget,
+        events: [BeatKeyframe]
+    ) {
+        self.channel = channel
+        self.target = target
+        self.timeline = BeatTimeline(events)
+    }
+
+    /// Creates a midi2 automation track from an existing beat timeline.
+    public init(
+        channel: UInt8 = 0,
+        target: Midi2ControlTarget,
+        timeline: BeatTimeline
+    ) {
+        self.channel = channel
+        self.target = target
+        self.timeline = timeline
+    }
+
+    /// Convenience accessor for the keyframes backing the track.
+    public var keyframes: [BeatKeyframe] {
+        timeline.keyframes
+    }
+
+    /// Evaluates the track at the specified beat.
+    public func value(at beat: BeatTime) -> Double {
+        timeline.value(at: beat)
+    }
+}
+
+/// Aggregates midi2 automation tracks under a shared time model.
+public struct Midi2Timeline: Sendable, Equatable, Codable {
+    /// Beat-to-seconds conversion context used to map automation into wall time.
+    public var timeModel: BeatTimeModel
+    /// Collection of automation tracks.
+    public var tracks: [Midi2AutomationTrack]
+
+    /// Creates a midi2 timeline from the supplied tracks.
+    public init(timeModel: BeatTimeModel, tracks: [Midi2AutomationTrack]) {
+        self.timeModel = timeModel
+        self.tracks = tracks
+    }
+
+    /// Evaluates the timeline at the provided beat position.
+    public func state(at beat: BeatTime) -> ParameterState {
+        tracks.reduce(into: ParameterState()) { state, track in
+            let value = track.value(at: beat)
+            track.target.apply(value: value, to: &state)
+        }
+    }
+
+    /// Evaluates the timeline at the provided wall-clock position.
+    public func state(at seconds: TimeInterval) -> ParameterState {
+        let beat = timeModel.beat(forSeconds: seconds)
+        return state(at: beat)
+    }
+
+    /// Duration inferred from the latest beat across all automation tracks.
+    public var duration: TimeInterval {
+        let maxBeat = tracks
+            .compactMap { $0.keyframes.last?.beat }
+            .max() ?? 0
+        return timeModel.seconds(for: BeatTime(maxBeat))
+    }
+}
+
+private extension Midi2ControlTarget {
+    func apply(value: Double, to state: inout ParameterState) {
+        switch self {
+        case .opacity:
+            state.opacity = value
+        case .positionX:
+            var position = state.position ?? PositionState(x: 0, y: 0)
+            position.x = value
+            state.position = position
+        case .positionY:
+            var position = state.position ?? PositionState(x: 0, y: 0)
+            position.y = value
+            state.position = position
+        case .scale:
+            state.scale = value
+        case .rotation:
+            state.rotation = value
+        case .colorR:
+            var color = state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)
+            color = color.setting(r: value)
+            state.color = color
+        case .colorG:
+            var color = state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)
+            color = color.setting(g: value)
+            state.color = color
+        case .colorB:
+            var color = state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)
+            color = color.setting(b: value)
+            state.color = color
+        case .colorA:
+            var color = state.color ?? RGBA(r: 0, g: 0, b: 0, a: 1)
+            color = color.setting(a: value)
+            state.color = color
+        }
+    }
+}
+
 public extension Timeline {
     /// Creates a wall-time timeline from a beat timeline and time model.
     init(beatTimeline: BeatTimeline, model: BeatTimeModel) {

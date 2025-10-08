@@ -38,6 +38,8 @@ public struct ColorTimeline: Sendable, Equatable, Codable {
 public struct AnimationClip: Sendable, Equatable, Codable {
     /// Total length of the clip in seconds.
     public var duration: TimeInterval
+    /// Optional midi2 automation timeline controlling parameters in beats.
+    public var midiTimeline: Midi2Timeline?
     /// Optional opacity track.
     public var opacity: Timeline?
     /// Optional position track.
@@ -52,13 +54,16 @@ public struct AnimationClip: Sendable, Equatable, Codable {
     /// Creates an animation clip with optional parameter timelines.
     public init(
         duration: TimeInterval,
+        midiTimeline: Midi2Timeline? = nil,
         opacity: Timeline? = nil,
         position: PositionTimeline? = nil,
         scale: Timeline? = nil,
         rotation: Timeline? = nil,
         color: ColorTimeline? = nil
     ) {
-        self.duration = duration
+        let midiDuration = midiTimeline?.duration ?? 0
+        self.duration = max(duration, midiDuration)
+        self.midiTimeline = midiTimeline
         self.opacity = opacity
         self.position = position
         self.scale = scale
@@ -66,10 +71,33 @@ public struct AnimationClip: Sendable, Equatable, Codable {
         self.color = color
     }
 
+    /// Creates an animation clip whose duration is derived from the midi timeline.
+    public init(
+        midiTimeline: Midi2Timeline,
+        opacity: Timeline? = nil,
+        position: PositionTimeline? = nil,
+        scale: Timeline? = nil,
+        rotation: Timeline? = nil,
+        color: ColorTimeline? = nil
+    ) {
+        self.init(
+            duration: midiTimeline.duration,
+            midiTimeline: midiTimeline,
+            opacity: opacity,
+            position: position,
+            scale: scale,
+            rotation: rotation,
+            color: color
+        )
+    }
+
     /// Evaluates the clip state at absolute time `t` (seconds).
     public func state(at t: TimeInterval) -> ParameterState {
         let clamped = max(0, min(duration, t))
         var state = ParameterState()
+        if let midiTimeline {
+            state.merge(with: midiTimeline.state(at: clamped))
+        }
         if let opacity {
             state.opacity = opacity.value(at: clamped)
         }
@@ -200,6 +228,7 @@ public enum Animation: Sendable, Equatable, Codable {
     /// Convenience initializer for creating a primitive clip inline.
     public init(
         duration: TimeInterval,
+        midiTimeline: Midi2Timeline? = nil,
         opacity: Timeline? = nil,
         position: PositionTimeline? = nil,
         scale: Timeline? = nil,
@@ -209,6 +238,28 @@ public enum Animation: Sendable, Equatable, Codable {
         self = .clip(
             AnimationClip(
                 duration: duration,
+                midiTimeline: midiTimeline,
+                opacity: opacity,
+                position: position,
+                scale: scale,
+                rotation: rotation,
+                color: color
+            )
+        )
+    }
+
+    /// Convenience initializer for creating a primitive clip backed by a midi timeline.
+    public init(
+        midiTimeline: Midi2Timeline,
+        opacity: Timeline? = nil,
+        position: PositionTimeline? = nil,
+        scale: Timeline? = nil,
+        rotation: Timeline? = nil,
+        color: ColorTimeline? = nil
+    ) {
+        self = .clip(
+            AnimationClip(
+                midiTimeline: midiTimeline,
                 opacity: opacity,
                 position: position,
                 scale: scale,

@@ -55,10 +55,25 @@ final class ClientTests: XCTestCase {
     func testSubmitAnimationMock() async throws {
         try MockHealthURLProtocol.enqueueJSON(path: "/animations", status: 201, object: ["id": "abc123"])
         let client = makeClient()
-        let anim = Animation(duration: 1.0, opacity: Timeline([
-            Keyframe(time: 0, value: 0),
-            Keyframe(time: 1, value: 1)
-        ]))
+        let anim = Animation(
+            duration: 1.0,
+            midiTimeline: Midi2Timeline(
+                timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+                tracks: [
+                    Midi2AutomationTrack(
+                        target: .opacity,
+                        events: [
+                            BeatKeyframe(beat: 0.0, value: 0.0),
+                            BeatKeyframe(beat: 1.0, value: 1.0)
+                        ]
+                    )
+                ]
+            ),
+            opacity: Timeline([
+                Keyframe(time: 0, value: 0),
+                Keyframe(time: 1, value: 1)
+            ])
+        )
         let id = try await client.submit(animation: anim)
         XCTAssertEqual(id, "abc123")
     }
@@ -80,6 +95,26 @@ final class ClientTests: XCTestCase {
             "tags": ["demo"],
             "animation": [
                 "duration": 1.5,
+                "midiTimeline": [
+                    "timeModel": [
+                        "tempo": ["beatsPerMinute": 60.0],
+                        "beatOffset": 0.0,
+                        "wallTimeOffset": 0.0,
+                        "enableMIDI2Clock": false
+                    ],
+                    "tracks": [
+                        [
+                            "channel": 0,
+                            "target": "opacity",
+                            "timeline": [
+                                "keyframes": [
+                                    ["beat": 0.0, "value": 0.0, "easing": "linear"],
+                                    ["beat": 1.5, "value": 1.0, "easing": "linear"]
+                                ]
+                            ]
+                        ]
+                    ]
+                ],
                 "opacity": [
                     "keyframes": [
                         ["time": 0.0, "value": 0.0, "easing": "linear"],
@@ -110,13 +145,32 @@ final class ClientTests: XCTestCase {
             "name": "Updated",
             "tags": ["updated"],
             "animation": [
-                "duration": 2.0
+                "duration": 2.0,
+                "midiTimeline": [
+                    "timeModel": [
+                        "tempo": ["beatsPerMinute": 60.0],
+                        "beatOffset": 0.0,
+                        "wallTimeOffset": 0.0,
+                        "enableMIDI2Clock": false
+                    ],
+                    "tracks": []
+                ]
             ],
             "updatedAt": updatedAt
         ]
         try MockHealthURLProtocol.enqueueJSON(path: "/animations/anim-1", status: 200, object: response)
         let client = makeClient()
-        let draft = AnimationDraft(animation: Animation(duration: 2.0), name: "Updated", tags: ["updated"])
+        let draft = AnimationDraft(
+            animation: Animation(
+                duration: 2.0,
+                midiTimeline: Midi2Timeline(
+                    timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+                    tracks: []
+                )
+            ),
+            name: "Updated",
+            tags: ["updated"]
+        )
         let updated = try await client.updateAnimation(id: "anim-1", draft: draft)
         XCTAssertEqual(updated.name, "Updated")
         XCTAssertEqual(updated.animation.duration, 2.0)

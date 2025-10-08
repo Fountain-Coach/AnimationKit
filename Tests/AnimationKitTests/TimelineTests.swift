@@ -28,7 +28,22 @@ final class TimelineTests: XCTestCase {
             Keyframe(time: 0.0, value: 0.0),
             Keyframe(time: 1.0, value: 1.0)
         ])
-        let anim = Animation(duration: 1.0, opacity: opacity)
+        let anim = Animation(
+            duration: 1.0,
+            midiTimeline: Midi2Timeline(
+                timeModel: BeatTimeModel(tempo: Tempo(beatsPerMinute: 60)),
+                tracks: [
+                    Midi2AutomationTrack(
+                        target: .opacity,
+                        events: [
+                            BeatKeyframe(beat: 0.0, value: 0.0),
+                            BeatKeyframe(beat: 1.0, value: 1.0)
+                        ]
+                    )
+                ]
+            ),
+            opacity: opacity
+        )
         XCTAssertEqual(anim.state(at: 0.0).opacity, 0.0)
         XCTAssertEqual(anim.state(at: 1.0).opacity, 1.0)
     }

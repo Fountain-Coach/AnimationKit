@@ -529,11 +529,14 @@ components:
       type: object
       required:
         - duration
+        - midiTimeline
       properties:
         duration:
           type: number
           format: double
           description: Total length of the clip in seconds.
+        midiTimeline:
+          $ref: '#/components/schemas/Midi2Timeline'
         opacity:
           $ref: '#/components/schemas/Timeline'
         position:
@@ -589,6 +592,102 @@ components:
           format: double
         easing:
           $ref: '#/components/schemas/Easing'
+    Tempo:
+      type: object
+      required:
+        - beatsPerMinute
+      properties:
+        beatsPerMinute:
+          type: number
+          format: double
+          minimum: 0.0001
+          description: Beats per minute used for beat-to-seconds conversion.
+    BeatTimeModel:
+      type: object
+      required:
+        - tempo
+      properties:
+        tempo:
+          $ref: '#/components/schemas/Tempo'
+        beatOffset:
+          type: number
+          format: double
+          default: 0
+          description: Beat value corresponding to the configured wall-time offset.
+        wallTimeOffset:
+          type: number
+          format: double
+          default: 0
+          description: Absolute time offset in seconds applied when mapping beats to wall time.
+        enableMIDI2Clock:
+          type: boolean
+          default: false
+          description: Feature flag enabling experimental MIDI 2.0 clock synchronisation.
+    BeatTimeline:
+      type: object
+      required:
+        - keyframes
+      properties:
+        keyframes:
+          type: array
+          items:
+            $ref: '#/components/schemas/BeatKeyframe'
+    BeatKeyframe:
+      type: object
+      required:
+        - beat
+        - value
+        - easing
+      properties:
+        beat:
+          type: number
+          format: double
+        value:
+          type: number
+          format: double
+        easing:
+          $ref: '#/components/schemas/Easing'
+    Midi2ControlTarget:
+      type: string
+      description: Parameter channel controlled by a midi2 automation track.
+      enum:
+        - opacity
+        - positionX
+        - positionY
+        - scale
+        - rotation
+        - colorR
+        - colorG
+        - colorB
+        - colorA
+    Midi2AutomationTrack:
+      type: object
+      required:
+        - target
+        - timeline
+      properties:
+        channel:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 255
+          description: Logical midi2 channel assigned to the automation track.
+        target:
+          $ref: '#/components/schemas/Midi2ControlTarget'
+        timeline:
+          $ref: '#/components/schemas/BeatTimeline'
+    Midi2Timeline:
+      type: object
+      required:
+        - timeModel
+        - tracks
+      properties:
+        timeModel:
+          $ref: '#/components/schemas/BeatTimeModel'
+        tracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Midi2AutomationTrack'
     Easing:
       type: string
       enum:
