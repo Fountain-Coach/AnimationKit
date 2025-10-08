@@ -32,5 +32,16 @@ final class TimelineTests: XCTestCase {
         XCTAssertEqual(anim.state(at: 0.0).opacity, 0.0)
         XCTAssertEqual(anim.state(at: 1.0).opacity, 1.0)
     }
+
+    func testTimelineEvaluationIsDeterministic() {
+        let tl = Timeline([
+            Keyframe(time: 0.0, value: 0.0),
+            Keyframe(time: 2.0, value: 2.0)
+        ])
+
+        let first = tl.value(at: 1.0)
+        let second = tl.value(at: 1.0)
+        XCTAssertEqual(first, second, accuracy: 1e-9)
+    }
 }
 

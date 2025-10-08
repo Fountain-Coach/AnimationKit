@@ -1,53 +1,41 @@
 # AnimationKit — Status Report
 
-- Timestamp (UTC): 2025-10-08T15:03:42Z
+- Timestamp (UTC): 2025-10-08T15:37:19Z
 - Branch: main
-- HEAD: f86ace3
+- HEAD: <pending>
 
 ## Summary
-- SwiftPM package scaffolded with two targets: `AnimationKit` (DSL) and `AnimationKitClient` (OpenAPI façade).
-- Apple Swift OpenAPI Generator wired via plugin on `AnimationKitClient` target; generated sources are ephemeral in `.build/`.
-- Minimal OpenAPI defined with endpoints:
-  - `GET /health` (health check)
-  - `POST /evaluate` (evaluate scalar timeline at time)
-  - `POST /animations` (submit animation; returns id)
-- Declarative DSL implemented (deterministic evaluation):
-  - Core types: `Easing`, `Keyframe`, `Timeline`
-  - Aggregated tracks: `PositionTimeline`, `ColorTimeline`
-  - `Animation` composes `opacity`, `position`, `scale`, `rotation`, `color`
-- Façade client bridges DSL → transport types and calls generated client.
-- Tests cover DSL evaluation, façade health/evaluate/submit, and JSON snapshot for serialized `Animation`.
+- SwiftPM manifest updated to the latest Apple Swift OpenAPI packages (`swift-openapi-generator` 1.10.3, runtime 1.8.3, URLSession 1.2.0).
+- Core DSL exposes documented public API covering keyframes, timelines, clips, groups, and sequences.
+- Animation composition supports concurrent groups and sequential playback with deterministic evaluation.
+- Beat-based time model (`BeatTimeModel`, `BeatTimeline`) converts between beats and wall-clock seconds with an opt-in MIDI 2.0 clock flag.
+- Tests cover timeline interpolation, composition determinism, beat conversion, and client serialization fallbacks.
 
 ## Structure
-- Manifest: Package.swift:1
-- Core DSL: Sources/AnimationKit/*
-- Client façade: Sources/AnimationKitClient/ServiceClient.swift:1
-- OpenAPI + plugin config:
-  - Sources/AnimationKitClient/openapi.yaml:1
-  - Sources/AnimationKitClient/openapi-generator-config.yaml:1
-- Bridging: Sources/AnimationKitClient/Serialization.swift:1
+- Manifest: Package.swift
+- Core DSL: Sources/AnimationKit (Animation.swift, Timeline.swift, Keyframe.swift, Parameters.swift, BeatTime.swift)
+- Client façade: Sources/AnimationKitClient/ServiceClient.swift
+- Serialization: Sources/AnimationKitClient/Serialization.swift
 - Tests:
-  - Tests/AnimationKitTests/TimelineTests.swift:1
-  - Tests/AnimationKitClientTests/ClientTests.swift:1
-  - Tests/AnimationKitClientTests/SerializationTests.swift:1
-- CI: .github/workflows/ci.yml:1 (macOS + Xcode 16.2; build and test)
-- Docs: docs/README.md:1
+  - Tests/AnimationKitTests/TimelineTests.swift
+  - Tests/AnimationKitTests/AnimationCompositionTests.swift
+  - Tests/AnimationKitTests/BeatTimeTests.swift
+  - Tests/AnimationKitClientTests/ClientTests.swift
+  - Tests/AnimationKitClientTests/SerializationTests.swift
+- Docs: README.md, docs/README.md, docs/RELEASE_PLAN.md, docs/CHANGELOG.md (new)
 
 ## Decisions
-- Follow Engraving (RulesKit-SPM) for plugin setup and OpenAPI placement.
-- Keep generated code out of VCS; rely on reproducible build-time generation.
-- Use aggregated types for clarity (`PositionTimeline`, `ColorTimeline`) over per-channel public API.
-- Tests use URLProtocol for client façade; no live calls in CI.
+- Treat complex animation structures as an enum tree (`Animation.clip/group/sequence`) to keep evaluation deterministic and extensible.
+- Restrict client serialization to primitive clips until composite transport formats are defined, surfacing a specific error otherwise.
+- Represent beat-driven timing with explicit models to enable future MIDI 2.0 clock integration without runtime globals.
 
 ## Open Items / Next Steps
-- Extend DSL: groups/sequences, beats time model, optional MIDI2 hooks behind a flag.
-- Façade: typed errors, retry/backoff policies, configuration surface.
-- API: expand endpoints for retrieval/listing, patching, and bulk evaluation.
-- Examples: add usage under `examples/` reflecting the aggregated API.
-- CI: optional Linux job if we relax platform constraints; add doc coverage and lint if introduced.
+- Extend client façade with typed errors and retry policies (Milestone 2).
+- Expand OpenAPI schema and serialization coverage for additional endpoints.
+- Add examples and documentation walkthroughs once DSL stabilizes further.
+- Wire CI, linting, and doc coverage tooling (Milestone 3).
 
 ## Housekeeping
-- `references/` contains Engraving clone and is ignored.
-- No generated sources committed; `.build/` ignored.
-- Conventional commits used for history.
-
+- `references/` remains ignored for external repositories.
+- Generated OpenAPI sources stay out of version control; plugin runs at build time.
+- Conventional commits remain the default workflow.

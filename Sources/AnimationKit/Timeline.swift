@@ -2,6 +2,7 @@ import Foundation
 
 /// A timeline of scalar keyframes with deterministic evaluation.
 public struct Timeline: Sendable, Equatable, Codable {
+    /// The keyframes sorted by ascending time.
     public var keyframes: [Keyframe]
 
     public init(_ keyframes: [Keyframe] = []) {

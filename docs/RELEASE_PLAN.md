@@ -4,21 +4,26 @@ The following tasks translate the current repository status into an actionable p
 
 ## Milestone 1 — Core Platform Hardening
 
-- [ ] **Audit SwiftPM scaffold against Engraver reference**
+- [x] **Audit SwiftPM scaffold against Engraver reference**
   - Confirm `Package.swift` includes the latest compatible `swift-openapi-generator` plugin version and aligned build settings.
   - Deliverable: Updated manifest if deltas exist; documented confirmation otherwise.
-- [ ] **Pin Swift toolchain and deployment targets**
+  - Result: Manifest now references `swift-openapi-generator` 1.10.3, `swift-openapi-runtime` 1.8.3, and `swift-openapi-urlsession` 1.2.0.
+- [x] **Pin Swift toolchain and deployment targets**
   - Document supported Swift version (5.9+/Swift 6 readiness) and minimum platform versions in `README.md` and manifest.
   - Deliverable: Manifest deployment targets set; docs updated.
-- [ ] **Stabilize DSL public API surface**
+  - Result: README documents Swift 6 toolchain support alongside macOS 13+/iOS 16+ requirements.
+- [x] **Stabilize DSL public API surface**
   - Review `Sources/AnimationKit` for naming consistency, doc comments, and access control.
   - Deliverable: Annotated public API documentation (`///`), breaking change log entry, and unit tests proving determinism.
-- [ ] **Expand DSL coverage to groups and sequences**
+  - Result: Public DSL types now carry doc comments, deterministic evaluation tests were added, and docs/CHANGELOG.md records the breaking change.
+- [x] **Expand DSL coverage to groups and sequences**
   - Implement grouping and sequencing constructs per design notes, including evaluation tests for nested compositions.
   - Deliverable: New DSL types/functions with tests in `Tests/AnimationKitTests`.
-- [ ] **Introduce beats-based time model**
+  - Result: `Animation.clip/group/sequence`, `AnimationGroup`, and `AnimationSequence` power nested compositions with new unit coverage.
+- [x] **Introduce beats-based time model**
   - Add beat-based timeline utilities with conversion to wall time; feature flagged for MIDI2 integration later.
   - Deliverable: Time model APIs, unit tests, and docs describing configuration.
+  - Result: `BeatTimeModel`, `BeatTimeline`, and conversion tests were added with an opt-in MIDI 2.0 clock flag documented in STATUS/README files.
 
 ## Milestone 2 — Client Reliability & Transport Features
 
