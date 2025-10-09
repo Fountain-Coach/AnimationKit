@@ -127,8 +127,13 @@ public struct AnimationServiceClient: Sendable {
     public func health() async throws -> String {
         try await execute(operationID: "getHealth") {
             let output = try await client.getHealth(headers: .init())
-            let status = try output.ok.body.json.status
-            return OperationOutcome(value: status, statusCode: 200)
+            switch output {
+            case let .ok(ok):
+                let status = try ok.body.json.status
+                return OperationOutcome(value: status, statusCode: 200)
+            case let .undocumented(statusCode, _):
+                throw AnimationServiceError.http(status: statusCode, reason: nil, operationID: "getHealth")
+            }
         }
     }
 
@@ -140,7 +145,15 @@ public struct AnimationServiceClient: Sendable {
         ))
         return try await execute(operationID: "evaluateTimeline") {
             let output = try await client.evaluateTimeline(body: payload)
-            return OperationOutcome(value: try output.ok.body.json.value, statusCode: 200)
+            switch output {
+            case let .ok(ok):
+                return OperationOutcome(value: try ok.body.json.value, statusCode: 200)
+            case let .badRequest(bad):
+                // 400 with typed error
+                throw AnimationServiceError.http(status: 400, reason: String(describing: bad.body), operationID: "evaluateTimeline")
+            case let .default(statusCode, _):
+                throw AnimationServiceError.http(status: statusCode, reason: nil, operationID: "evaluateTimeline")
+            }
         }
     }
 
@@ -151,8 +164,15 @@ public struct AnimationServiceClient: Sendable {
         )
         return try await execute(operationID: "evaluateTimelineBulk") {
             let output = try await client.evaluateTimelineBulk(body: body)
-            let samples = AnimationSerialization.fromSchema(try output.ok.body.json)
-            return OperationOutcome(value: samples, statusCode: 200)
+            switch output {
+            case let .ok(ok):
+                let samples = AnimationSerialization.fromSchema(try ok.body.json)
+                return OperationOutcome(value: samples, statusCode: 200)
+            case let .badRequest(bad):
+                throw AnimationServiceError.http(status: 400, reason: String(describing: bad.body), operationID: "evaluateTimelineBulk")
+            case let .default(statusCode, _):
+                throw AnimationServiceError.http(status: statusCode, reason: nil, operationID: "evaluateTimelineBulk")
+            }
         }
     }
 
@@ -161,7 +181,14 @@ public struct AnimationServiceClient: Sendable {
         let payload = Operations.submitAnimation.Input.Body.json(try AnimationSerialization.toSchema(animation))
         return try await execute(operationID: "submitAnimation") {
             let output = try await client.submitAnimation(body: payload)
-            return OperationOutcome(value: try output.created.body.json.id, statusCode: 201)
+            switch output {
+            case let .created(created):
+                return OperationOutcome(value: try created.body.json.id, statusCode: 201)
+            case let .badRequest(bad):
+                throw AnimationServiceError.http(status: 400, reason: String(describing: bad.body), operationID: "submitAnimation")
+            case let .default(statusCode, _):
+                throw AnimationServiceError.http(status: statusCode, reason: nil, operationID: "submitAnimation")
+            }
         }
     }
 
@@ -170,8 +197,13 @@ public struct AnimationServiceClient: Sendable {
         let query = Operations.listAnimations.Input.Query(pageToken: pageToken, pageSize: pageSize)
         return try await execute(operationID: "listAnimations") {
             let output = try await client.listAnimations(query: query, headers: .init())
-            let page = try AnimationSerialization.fromSchema(try output.ok.body.json)
-            return OperationOutcome(value: page, statusCode: 200)
+            switch output {
+            case let .ok(ok):
+                let page = try AnimationSerialization.fromSchema(try ok.body.json)
+                return OperationOutcome(value: page, statusCode: 200)
+            case let .default(statusCode, _):
+                throw AnimationServiceError.http(status: statusCode, reason: nil, operationID: "listAnimations")
+            }
         }
     }
 
@@ -179,8 +211,15 @@ public struct AnimationServiceClient: Sendable {
     public func getAnimation(id: String) async throws -> RemoteAnimation {
         return try await execute(operationID: "getAnimation") {
             let output = try await client.getAnimation(path: .init(id: id), headers: .init())
-            let resource = try AnimationSerialization.fromSchema(try output.ok.body.json)
-            return OperationOutcome(value: resource, statusCode: 200)
+            switch output {
+            case let .ok(ok):
+                let resource = try AnimationSerialization.fromSchema(try ok.body.json)
+                return OperationOutcome(value: resource, statusCode: 200)
+            case .notFound:
+                throw AnimationServiceError.http(status: 404, reason: nil, operationID: "getAnimation")
+            case let .default(statusCode, _):
+                throw AnimationServiceError.http(status: statusCode, reason: nil, operationID: "getAnimation")
+            }
         }
     }
 
@@ -189,8 +228,20 @@ public struct AnimationServiceClient: Sendable {
         let body = Operations.updateAnimation.Input.Body.json(try AnimationSerialization.toSchema(draft))
         return try await execute(operationID: "updateAnimation") {
             let output = try await client.updateAnimation(path: .init(id: id), body: body)
-            let resource = try AnimationSerialization.fromSchema(try output.ok.body.json)
-            return OperationOutcome(value: resource, statusCode: 200)
+            switch output {
+                case let .ok(ok):
+                    let resource = try AnimationSerialization.fromSchema(try ok.body.json)
+                    return OperationOutcome(value: resource, statusCode: 200)
+                case let .created(created):
+                    let resource = try AnimationSerialization.fromSchema(try created.body.json)
+                    return OperationOutcome(value: resource, statusCode: 201)
+                case let .badRequest(bad):
+                    throw AnimationServiceError.http(status: 400, reason: String(describing: bad.body), operationID: "updateAnimation")
+                case .notFound:
+                    throw AnimationServiceError.http(status: 404, reason: nil, operationID: "updateAnimation")
+                case let .default(statusCode, _):
+                    throw AnimationServiceError.http(status: statusCode, reason: nil, operationID: "updateAnimation")
+            }
         }
     }
 
